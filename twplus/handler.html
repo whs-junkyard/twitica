@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../jquery.js"></script>
+<script src="sha1.js"></script>
+<script src="oauth.js"></script>
+<script src="twitter.js"></script>
+<script>
+var Tw;
+var CHD = {};
+CHD.cb = function(){}
+CHD.xhr = new XMLHttpRequest();
+var CHDtimeout;
+
+function makeTimeout(){
+	CHDtimeout = setTimeout(function(){
+		CHD.cb.postMessage({type: "error", data: "lostcon"});
+		CHD.connected = false;
+	}, 90000);
+}
+CHD.xhr.onreadystatechange = function(){
+	if(CHD.xhr.readyState == 2){
+		if(CHD.xhr.responseText.indexOf("UNAUTHORIZED") != -1){
+			CHD.cb.postMessage({type: "error", data: "loginerror"});
+			CHD.xhr.abort();
+		}
+	}else if(CHD.xhr.readyState == 3){
+		if(!CHD.connected){
+			CHD.connected=true;
+			CHD.cb.postMessage({type: "error", data: "connected"});
+		}
+		clearTimeout(CHDtimeout); makeTimeout();
+		CHD.cb.postMessage({data: CHD.xhr.responseText});
+	}else if(CHD.xhr.readyState == 4){
+		CHD.cb.postMessage({type: "error", data: "lostcon"});
+		CHD.connected = false;
+	}
+}
+
+function handle(what, who, how){
+	// what = data
+	// how = callback function
+	if(what.type == "savePIN"){ // private API
+		if(localStorage._tmp_pin == "not loaded"){
+			localStorage._tmp_pin=what.pin.replace(/^\s+|\s+$/, '');
+			return how(true);
+		}else return how(false);
+	}else if(what.type == "logincheck"){ // private API
+		if(localStorage.twitterKey){
+			keys = JSON.parse(localStorage.twitterKey);
+			Tw = new Twitter(keys[0], keys[1]);
+		}else Tw=undefined;
+		if(!Tw) return how(window.location.href.replace("handler.html", "options.html"));
+		else how(false);
+	}else if(what.type == "chirpCallback"){ // private API
+		CHD.cb = how;
+	}else if(what.type == "geo"){
+		return $.getJSON("http://maps.google.com/maps/api/geocode/json?sensor=true&"+$.param(what.data), how);
+	}else if(what.type == "tw.info"){
+		how(JSON.parse(localStorage.twitterData));
+	}else if(what.type == "tw.refresh"){
+		if(!Tw) return how(window.location);
+		if(!what.data.timeline) what.data.timeline = "home";
+		if(what.data.timeline == "replies") what.data.timeline = "mentions";
+		if(["mentions", "retweets_of_me", "retweeted_to_me", "retweeted_by_me"].indexOf(what.data.timeline) != -1)
+			apiName = what.data.timeline;
+		else
+			apiName = what.data.timeline+"_timeline";
+		if(!what.param) what.param = {};
+		//what.param["include_entities"] = true;
+		return Tw.get("statuses/"+apiName, what.param, how);
+	}else if(what.type == "tw.status"){
+		if(!Tw) return how(window.location);
+		return Tw.get("statuses/show/"+what.data, null, how);
+	}else if(what.type == "tw.update"){
+		if(!Tw) return how(window.location);
+		data = {};
+		if(what.data.status) data.status = what.data.status;
+		if(what.data.irp) data.in_reply_to_status_id = what.data.irp;
+		if(what.data.lat) data.lat = what.data.lat;
+		if(what.data.long) data.long = what.data.long;
+		//data["include_entities"] = true;
+		return Tw.post("statuses/update", data, how);
+	}else if(what.type == "tw.retweet"){
+		if(!Tw) return how(window.location);
+		data = {};
+		if(what.data.lat) data.lat = what.data.lat;
+		if(what.data.long) data.lat = what.data.long;
+		//data["include_entities"] = true;
+		return Tw.post("statuses/retweet/"+what.data.id, data, how);
+	}else if(what.type == "tw.shorten"){ // unused
+		$.get("http://twitter.com/share?url="+encodeURIComponent(what.url), {}, (function(how,old,d){
+			url = d.match(/<textarea [^>]+> (http:\/\/t\.co\/[a-zA-Z0-9]+)<\/textarea>/)[1];
+			how({url: url, old: old});
+		}).bind(this, how, what.url));
+	}else if(what.type == "tw.chirp"){
+		chirp();
+		return how(true);
+	}else if(what.type == "shorten"){
+		$.getJSON("https://api-ssl.bit.ly/v3/shorten?login=manatsawin&apiKey=R_fe0508be39d31d16b36c8ae014d4bfc4&format=json&domain=j.mp&longUrl="+encodeURIComponent(what.url), {}, (function(how,d){
+			how({url: d.data.url, old: d.data.long_url});
+		}).bind(this, how));
+	}else if(what.type == "ytplaying"){
+		// find yt window
+		var out = [];
+		chrome.windows.getAll({populate: true}, function(wnds){
+			wnds.forEach(function(wnd){
+				wnd.tabs.forEach(function(tab){
+					if(tab.url.match(/^http:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab.title != ""){
+						url = tab.url.match(/^http:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
+						url = "http://youtu.be/"+url;
+						out.push({title: tab.title.split("YouTube - ")[1], url: url});
+					}
+				});
+			});
+			how(out);
+		});
+	}
+}
+function chirp(port){
+	if(port !== undefined)
+		CHD.cb=port;
+	msg = {
+		method: "GET",
+		action: "https://userstream.twitter.com/2/user.json?with=users"
+	}
+	reqBody = OAuth.formEncode(msg.parameters);
+	OAuth.completeRequest(msg, Tw.consumer);
+	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
+	CHD.connected = false;
+	CHD.xhr.open("GET", msg.action, true);
+	CHD.xhr.setRequestHeader("Authorization", authHeader);
+	CHD.xhr.send(reqBody);
+	if(port !== undefined){
+		port.onDisconnect.addListener(function(){
+			CHD.xhr.abort();
+		});
+	}
+}
+
+chrome.extension.onRequest.addListener(handle);
+chrome.extension.onConnect.addListener(chirp);
+</script>
+</head>
+</html>

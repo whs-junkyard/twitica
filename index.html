@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Twitica Desktop</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<script src="http://www.google.com/jsapi?key=ABQIAAAAYoOKCkfFW91dTeqo-JkXzRTXubIbTm3zITlHAvzASXLiAgOrsxQwNxpNZIHLsLtgnB_V0_kb7qHobQ" type="text/javascript"></script>
+	<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;sensor=true&amp;key=ABQIAAAAYoOKCkfFW91dTeqo-JkXzRTXubIbTm3zITlHAvzASXLiAgOrsxQwNxpNZIHLsLtgnB_V0_kb7qHobQ" type="text/javascript"></script>
+	<script src="jquery.js" type="text/javascript"></script>
+	<script src="shadowbox/shadowbox.js" type="text/javascript"></script>
+	<script src="mousewheel.js" type="text/javascript"></script>
+	<script src="query.js" type="text/javascript"></script>
+	<script src="gmaps.js" type="text/javascript"></script>
+	<script src="easing.js" type="text/javascript"></script>
+	<script src="base64.js" type="text/javascript"></script>
+	<script src="android.js" type="text/javascript"></script>
+	<script src="twitter-text.js" type="text/javascript"></script>
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="viewport" content="width=device-width, height=480, user-scalable=no">
+	<style type="text/css">
+/* externals */
+@import url(shadowbox/shadowbox.css);
+/* main */
+body{
+	padding:0;margin:0;
+	font-family: verdana, "Lucida Sans", "Dejavu Sans", sans-serif;
+	background: #333;
+	color: white;
+	overflow: hidden;
+	font-size: 10pt;
+}
+#body{
+	background: rgba(51,51,51,0.85);
+	margin-top: 1000px; /* 25px */
+	-webkit-box-shadow: #333 0px 0px 20px;
+	margin-bottom: 1000px;
+	z-index: 100;
+}
+/* ui */
+header{
+	width: 100%;
+	background: #111;
+	-webkit-box-shadow: #111 0px 3px 10px;
+	z-index: 1000000;
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	-webkit-transition: -webkit-transform 0.2s ease-out;
+}
+header menu{
+	list-style: none;
+	margin:0;
+	padding-left: 0;
+}
+header menu li{
+	float: left;
+	display: block;
+	text-align: center;
+	padding: 3px 10px 3px 10px;
+	background: inherit;
+	-webkit-transition: background 100ms linear;
+}
+#geoloc{
+	width: 120px;
+	overflow:hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	cursor: pointer;
+}
+#menubutt li:hover, #geoloc:hover{
+	background: #666;
+}
+header menu li b{
+	color: #eeff55;
+	text-shadow: #eeff55 0px 2px 2px;
+}
+header menu a{
+	width: 100%;
+	display: block;
+	text-decoration: none;
+	color: inherit;
+}
+header .info{
+	text-align: center;
+	text-overflow: ellipsis;
+	overflow: hidden; width: 100%; height: 1.8em;
+	white-space: nowrap;
+	font-size: 8pt;
+}
+.right{float: right;}
+footer{
+	position: fixed;
+	bottom: -3px;
+	width: 100%;
+	border-top: #555 solid 1px;
+	z-index: 1000000;
+	-webkit-transition: -webkit-transform 0.2s ease-out;
+}
+footer textarea{
+	width: 100%;
+	padding: 3px;
+	height: 40px;
+	margin:0;
+	-webkit-box-sizing: border-box;
+	resize: none;
+}
+input[type=text],input[type=password],textarea{
+	font-family: tahoma;
+	background: #111;
+	color: white;
+	border: none;
+	-webkit-transition: border 100ms linear, background-color 250ms linear;
+	overflow: hidden;
+}
+input[type=text],input[type=password]{border: transparent solid 1px;}
+input[type=text]:hover,input[type=password]:hover{
+	border: #333 solid 1px;
+}
+input[type=submit]{
+	width: 100%;
+	background: black;
+	-webkit-box-shadow: black 0px 3px 10px;
+	border: none;
+	color: white;
+	min-height: 2em;
+}
+.hinttxt{
+	color: #ccc !important;
+}
+/* upload */
+#upload{
+	position: fixed;
+	top: 10%;
+	left: 10%;
+	width: 75%;
+	padding: 10px;
+	-webkit-border-radius: 10px;
+	-webkit-box-shadow: black 0px 3px 10px;
+	background: rgba(0,0,0,0.8);
+	z-index: 3000;
+}
+#upload input[type=file]{
+	color: white;
+}
+#upload h1{
+	margin:0; padding:0;
+	font-size:16pt;
+}
+/* notifications */
+#notify{
+	position: fixed;
+	right: 0px;
+	top: 30px;
+	padding: 10px;
+	-webkit-transition: -webkit-transform 0.2s ease-out;
+	z-index: 1000000;
+}
+.notify{
+	background: #131313;
+	padding: 10px;
+	-webkit-box-shadow: black 0px 0px 0.5em;
+	-webkit-border-radius: 0.375em;
+	margin-bottom: 10px;
+	position: relative;
+	-webkit-transition: left 1.5s ease-in-out, opacity .1s linear;
+	opacity: 0.9;
+}
+.notify:hover{
+	opacity: 0.4;
+}
+/* notices */
+#bodyimg{
+	opacity: 0;
+	-webkit-transition: opacity 250ms linear;
+}
+article{
+	padding: 15px;
+	padding-top:2px;padding-bottom:2px;
+	-webkit-transition: margin-left .5s ease-out, width .5s linear, -webkit-transform 3s ease-in;
+	/*text-shadow: #222 0px 3px 3px;*/
+}
+article .avatar{
+	width: 24px;
+	height: 24px;
+	/*border: #555 solid 1px;*/
+	-webkit-box-shadow: #222 0px 2px 8px;
+}
+article .noticetdin{
+	padding-left: 5px;
+}
+article .info{
+	color: #aaa !important;
+	font-size: 8pt;
+}
+article a{
+	color: inherit; text-decoration: none;
+}
+article .user{
+	color: #99eeff;
+	text-decoration: none;
+	font-weight: bold;
+	-webkit-transition: color 100ms linear;
+}
+article .user.mentioned{
+	color: #99ffaa;
+}
+article.replied{
+	color: #ffa;
+}
+article.selected{
+	background-color: #555 !important;
+}
+article td{
+	vertical-align: top;
+}
+.noticeMeta{
+	min-height: 20px;
+	padding: 10px;
+	background: rgba(85,85,85,0.95);
+	color: white;
+	width:100%;
+	-webkit-box-shadow: black 0px 2px 10px;
+}
+article .noticebadge{
+	padding-left: 5px; padding-right: 5px;
+	padding-top: 1px; padding-bottom: 1px;
+	-webkit-border-radius: 10px;
+	background: #666;
+	color: #eea;
+	text-shadow: black 0px 1px 0px;
+	border: #333 solid 1px;
+	-webkit-transition: background 250ms linear;
+}
+	</style>
+	<script type="text/javascript">
+var curPos=0, lastId=0, accInfo = {}, dentsRendered=[], dentsElement=[];
+if(navigator.geolocation){
+	var geo = navigator.geolocation;
+}else{
+	unsupported();
+}
+try{console;}catch(e){console = {log: function(){}, error: function(){}, warn: function(){}};} // noob firefox need this (why do I care???)
+var geoPos = [null,null];
+var last_twitter_id = 0, flickering = false, bgTimeout;
+var SET, twFirstLoadDone, dataDiv = {}, DB, TwPlus=undefined, failtweet;
+google.load("earth", "1");
+
+/**
+ * Remove array's member
+ * @see http://ejohn.org/blog/javascript-array-remove/
+ */
+Array.prototype.remove = function(from, to) {
+	var rest = this.slice((to || from) + 1 || this.length);
+	this.length = from < 0 ? this.length + from : from;
+	return this.push.apply(this, rest);
+};
+
+/**
+ * Make array members unique
+ * Note that $.unique is not supported for non-elements arrays.
+ * @see http://www.martienus.com/code/javascript-remove-duplicates-from-array.html
+ */
+Array.prototype.unique = function () {
+	var r = new Array();
+	o: for(var i = 0, n = this.length; i < n; i++){
+		for(var x = 0, y = r.length; x < y; x++){
+			if(r[x]==this[i]){
+				continue o;
+			}
+		}
+		r[r.length] = this[i];
+	}
+	return r;
+}
+
+/**
+ * Redirect to unsupported page
+ * @since 5 June 2010
+ */
+function unsupported(cause){
+	window.location = "unsupported.html?"+(cause?cause:"");
+}
+
+/**
+ * Show a notification at top right
+ * @arg String Message
+ * @return jQuery
+ */
+function notify(str){
+	e = $("<div class='notify'></div>").html(str).css("left", -1 * $(window).width()).appendTo("#notify");
+	setTimeout(function(e){
+		e.css("left", 0);
+	}, 0, e);
+	function hideE(e){
+		e.css({"left": $(window).width()}).slideUp(1500, function(){
+			$(this).remove();
+		});
+	}
+	hidet = setTimeout(hideE, 3000 + ($("#notify").children().length * 200), e);
+	e.data("timeout", hidet);
+	e.click(function(){
+		clearTimeout($(this).data('timeout'));
+		hideE($(this));
+	});
+	return e;
+}
+var _twcom_callbacks = {};
+/**
+ * Communicate with TwiticaDesktop+, Chrome optional extension
+ * @arg Any The message
+ * @arg Function callback function
+ */
+function twcom(msg, callback){
+	if(!TwPlus) throw("Twitica Desktop+ not detected, did you set TwPlus?");
+	id=new Date().getTime();
+	_twcom_callbacks[id] = callback || function(){};
+	$("#twiticom").html(encodeURIComponent(JSON.stringify({id: id, data: msg}))).mousedown();
+}
+/**
+ * Send browser notification to Chrome
+ *
+ * @arg String Title
+ * @arg String Message
+ * @arg String Icon URL (optional)
+ */
+function comnotify(title, msg, icon, howlong){
+	if(howlong == undefined) howlong = 3;
+	if(window.webkitNotifications){
+		noti = window.webkitNotifications.createNotification(icon, title, msg);
+		noti.show();
+		setTimeout(function(){noti.cancel()}, howlong * 1000, noti);
+		return noti;
+	}else{
+		unsupported();
+	}
+}
+/**
+ * Replace HTML escape string with their real representitive.
+ * @arg String Input
+ * @return String
+ */
+function ungt(s){
+	return s.replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&quot;/g, "'").replace(/&quote;/g, '"').replace(/&amp;/g, "&");
+}
+/**
+ * Return selected notice
+ *
+ * Updated since 10 September 2010, as selecting the element with jQuery does not supply $.expando correctly
+ * thus not supplying $.data and breaks replyCur. 
+ *
+ * @return jQuery
+ */
+function getCurrent(){
+	return dentsElement[curPos];
+}
+/**
+ * Is that tweet blocked from displaying?
+ * @arg String Poster
+ * @arg String Source (via)
+ * @arg String Content
+ * @return Boolean
+ */
+function isBlocked(user, src, txt){
+	keys = localStorage.blockKey.split("||");
+	blocked = false;
+	keys.forEach(function(x){
+		x=$.trim(x); if(x=="") return;
+		if(x.match(/^user:/) && user){
+			usRegex = x.replace(/^user:/, "");
+			if(user.match(new RegExp(usRegex, "i"))){
+				console.log("blocked! user "+user+" matched "+x);
+				blocked = true;
+			}
+		}else if(x.match(/^src:/) && src){
+			usRegex = x.replace(/^src:/, "");
+			if(src.match(new RegExp(usRegex, "i"))){
+				console.log("blocked! src "+user+" matched "+x);
+				blocked = true;
+			}
+		}else if(txt){
+			reg = new RegExp(x, "i");
+			if(txt.match(reg)){
+				console.log("blocked! "+user+" matched "+x);
+				blocked = true;
+			}
+		}
+	});
+	return blocked;
+}
+/**
+ * Scroll to the selected notice
+ */
+function refocus(){
+	$("#body article.selected").removeClass("selected").blur();
+	thisOne = getCurrent();
+	if(thisOne)
+		thisOne.addClass("selected").focus(); //focus here is the event focus
+	if(SET.bgimg){
+		try{
+			if(thisOne.data("data").user.profile_background_image_url != $("#bodyimg").data("img")){
+				$("#bodyimg").css("opacity", 0);
+				dd=$("<div id='bodyimg' class='bodyimgs'></div>").css({
+					"top": $("header").height(), "left": 0, "position": "fixed", "z-index": -100, "width": "100%", "height": "100%",
+					"background-image": "url("+thisOne.data("data").user.profile_background_image_url+")",
+					"background-color": "#"+thisOne.data("data").user.profile_background_color,
+					"background-repeat": thisOne.data("data").user.profile_background_tile ? "repeat" : "no-repeat", 
+					"opacity": 0
+				}).data("img", thisOne.data("data").user.profile_background_image_url).appendTo("body");
+				setTimeout(function(dd){dd.css("opacity", 1);}, 1, dd); // have to wait for css to be applied
+				setTimeout(function(t){
+					$(".bodyimgs").not(t).remove();
+				}, 250, dd);
+			}
+		}catch(e){}
+	}
+	title = document.title.replace(/^\(([\-0-9 !]+)\) /, "")
+	if(!konami){
+		count = curPos+1;
+		left = lastId-count;
+	}else{
+		count = lastId-curPos;
+		left = count-1;
+	}
+	mentionCnt = $("#body article:gt("+curPos+")").filter(".replied").length;
+	if(left){
+		prefix = "("
+		if(mentionCnt > 0){
+			prefix += mentionCnt+"! "
+		}
+		prefix += left + ")"
+		document.title = prefix+" "+title;
+	}else
+		document.title = title
+	$("#twcounter").html(count+"/"+lastId);
+	
+	if(navigator.userAgent.indexOf("Android") != -1) return 0;
+	// #thaiWitter
+	if(thisOne === undefined || thisOne.length==0) return 0;
+	t = thisOne.offset().top;
+	b = t + thisOne.height();
+	tt = $("body").scrollTop() + thisOne.height() + 30;
+	bb = $("body").scrollTop() + $(window).height() - $("footer").height() - thisOne.height();
+	ot = $("body").scrollTop();
+	speed = 0;
+	if(b>bb){
+		flickering = true;
+		np = b - $(window).height() +$("footer").height() + 100;
+		distance = Math.abs(ot-np);
+		speed = Math.max((distance/2)*0.01, 3);
+		$('body').stop(true).animate({"scrollTop":  np}, {duration: (speed*100)+500, easing: "easeOutBack"}, function(){
+			flickering = false;
+		});
+		//$('body').scrollTop(np);
+	}else if(t < tt){
+		flickering = true;
+		np = t - 25 - 100;
+		distance = Math.abs(ot-np);
+		speed = Math.max((distance/2)*0.01, 3);
+		$('body').stop(true).animate({"scrollTop":  np}, {duration: (speed*100)+500, easing: "easeOutBack"}, function(){
+			flickering = false;
+		});
+		//$('body').scrollTop(np);
+	}
+	return speed*100;
+}
+/**
+ * Scroll n tweet down
+ * N could be positive (down) or negative (up)
+ * @arg int Amount to scroll, can be positive and negative
+ */
+function scroll(a){
+	curPos += a
+	if(curPos < 0){
+		curPos = 0;
+		speed = refocus();
+	}else if(curPos > lastId-1){
+		curPos = lastId-1;
+		speed = refocus();
+	}else{
+		refocus();
+	}
+}
+var in_reply_to;
+/**
+ * Sent message
+ * @arg String Message to send
+ */
+function sendTweet(msg){
+	doupload = false;
+	if($("#upload:visible").length > 0){
+		doupload = true;
+		notify("Tweeting with attachments...");
+		$("#upload").hide("slow");
+	}else{
+		notify("Tweeting...");
+	}
+	cb = function(o){
+		try{
+			o = JSON.parse(o);
+		}catch(e){}
+		if(o == null || (!o.id && !o.error)){
+			failtweet = [msg, in_reply_to]
+			notify("<b>ERROR:</b> Your tweet couldn't be send.");
+			return
+		}
+		if(o.error){
+			failtweet = [msg, in_reply_to]
+			notify("<b>ERROR:</b> "+o.error);
+			return
+		}
+		failtweet = null;
+		notify("<div style='color: #afa'>Success! Your tweet have been posted</div>");
+		addTweet(o);
+	};
+	if(SET.nogeo){
+		// hey, put it out!
+		geoPos = [];
+	}
+	reqData = {
+		"status": msg,
+		"irp": in_reply_to,
+		"lat": geoPos[0], "long": geoPos[1]
+	};
+	if(TwPlus)
+		twcom({type: "tw.update", data:reqData}, cb);
+	else
+		$.post("auth.php?act=update&xss=" + accInfo.xss, reqData, cb);
+	
+	in_reply_to = null;
+}
+/**
+ * Draw and process a message
+ * @private
+ *
+ * @arg Object The message, as returned from Twitter API
+ * @arg String Origin (twitter)
+ */
+function processMsg(d, kind){
+	// Handle RT nicely
+	if(d.retweeted_status){
+		if(dentsRendered.indexOf(d.retweeted_status.id) != -1) return "rendered";
+		rtData = $.extend(true, {}, d); // clone it!
+		d = d.retweeted_status;
+		d.rtdata = rtData;
+	}
+
+	d.html = $("<span>"+TwitterText.auto_link(d.text.replace(/</g, "&lt;").replace(/>/g, "&gt;"), {
+		username_class: "url"
+	})+"</span>");
+	if(!d.user.profile_url){
+		if(kind == "twitter")
+			d.user.profile_url = "https://twitter.com/"+d.user.screen_name;
+	}
+	if(!d.url){
+		if(kind == "twitter")
+			d.url = "https://twitter.com/"+d.user.screen_name + "/status/" + d.id_str;
+	}
+	if(d.in_reply_to_status_id && !d.in_reply_to_status_url){
+		if(kind == "twitter"){
+			d.in_reply_to_status_url = "https://twitter.com/"+d.in_reply_to_screen_name+"/status/"+d.in_reply_to_status_id_str
+		}
+	}
+	
+	info = ['from '+ungt(d.source)]
+	
+	time = new Date(d.created_at);
+	times = time.toLocaleTimeString();
+	if(time.toLocaleDateString() != new Date().toLocaleDateString())
+		times = time.getDate() + "/" + time.getMonth() + "/" + (1900 + time.getYear()) + " " + times;
+	info.unshift("<time datetime='"+d.created_at+"' pubdate><a href='"+d.url+"'>"+times+"</a></time>");
+	
+	if(d.in_reply_to_status_id){
+		if($(".atmention:eq(0) .nickname", d.html).html() == d.in_reply_to_screen_name){
+			$(".atmention:eq(0)", d.html).addClass("noticebadge");
+			$(".atmention:eq(0)", d.html).data("id", d.in_reply_to_status_id_str).click(function(e){
+				if(e.ctrlKey) return true;
+				theDiv = dataDiv[$(this).data("id")];
+				if(!theDiv) return true;
+				else scroll(theDiv.data("id") - curPos);
+				return false;
+			});
+			$(".atmention:eq(0) a", d.html).attr("href", d.in_reply_to_status_url);
+		}else{
+			irp = $("<span class='noticebadge'><a href='"+d.in_reply_to_status_url+"'>» "+d.in_reply_to_screen_name+"</a></span>");
+			irp.data("id", d.in_reply_to_status_id_str).click(function(e){
+				if(e.ctrlKey) return true;
+				theDiv = dataDiv[$(this).data("id")];
+				if(!theDiv) return true;
+				else scroll(theDiv.data("id") - curPos);
+				return false;
+			});
+			info.push(irp);
+		}
+	}
+	if(d.geo)
+		info.push($("<a href='#' title='Geolocation'><img src='marker.png'></a>").click(function(){
+			if(navigator.userAgent.indexOf("Android") != -1){
+				window.location = "http://maps.google.com/maps?q="+d.geo.coordinates[0]+","+d.geo.coordinates[1]+"&z=17";
+				return false;
+			}else{
+				geoMap = $("<div>Loading map...</div>").css({
+					"width": $(window).width() * 6/7, "height": $(window).height() * 3/4,
+					"text-align": "center", "font-size": "16pt",
+				});
+				Shadowbox.open({
+					content: geoMap,
+					player: "jquery",
+					title: "@"+d.user.screen_name+" position"
+				});
+				setTimeout(function(geoMap){
+					geoMap.gMap({
+						markers: [{latitude: d.geo.coordinates[0], longitude: d.geo.coordinates[1], html: "<span style='color:black'>"+d.user.name+"</span>"}],
+						zoom: 17,
+						latitude: d.geo.coordinates[0], longitude: d.geo.coordinates[1],
+						controls: ["GMapTypeControl", "GSmallZoomControl3D"],
+					});
+				}, 1200, geoMap); // somehow gMaps doesn't play nicely and need window resizing, but this trick use less CPU
+				return false;
+			}
+		}));
+	lock="";
+	if(d.user.protected) lock = "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'>"
+	if(d.rtdata) info.push("<span class='noticebadge'>&#9851 "+d.rtdata.user.screen_name+"</span>");
+	
+	dent = $('<article><table><tr><td><a href="'+ d.user.profile_url +'" target="_blank"><img src="'+d.user.profile_image_url+'" class="avatar" /></a></td><td class="noticetdin">'
+		+ '<div>'+lock+'<span class="user" title="'+d.user.name+' ('+kind+')">'+d.user.screen_name+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
+		+ '</td></tr></table></article>'
+	);
+	$(".noticebody", dent).append(d.html);
+	$("a>.avatar", dent).click(function(e){
+		if(navigator.userAgent.indexOf("Android") == -1 && !e.ctrlKey){
+			window.open("?timeline=user&user="+d.user.screen_name, d.user.id+'timeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+			return false;
+		}
+	});
+
+	// have to do this after the dent have been created
+	if(d.in_reply_to_status_id){
+		function handleGotStatus(origt){
+			if(!dataDiv[d.id_str]) return; // we can't check this ahead since dataDiv would be populated after processMsg returned
+			if(origt.error){
+				$(".atmention:eq(0)", dataDiv[d.id_str]).attr("title", origt.error).css("background", "red");
+			}else{
+				dataDiv[d.id_str].data("replystatus", origt);
+			}
+		}
+		if(!dataDiv[d.in_reply_to_status_id_str]){
+			// Try look it in db first
+			DB.transaction(function(x){
+				x.executeSql("SELECT * FROM notices WHERE id=? AND kind=?", [d.in_reply_to_status_id_str, kind], function(x,rs){
+					rs = rs.rows;
+					if(rs.length == 0){
+						cb=function(origt){
+							DB.transaction(function(x){ // somehow not writing this causing DOM Exception 11
+								x.executeSql("INSERT INTO notices (id, kind, data, creation) VALUES (?,?,?, ?)", [origt.id_str, kind, JSON.stringify(origt), new Date().getTime()]);
+							});
+							handleGotStatus(origt);
+						};
+						if(TwPlus && kind == "twitter")
+							twcom({type: "tw.status", data: d.in_reply_to_status_id_str}, cb);
+						else
+							$.getJSON("auth.php?act=twstatus&id="+d.in_reply_to_status_id_str, cb);
+					}else{
+						handleGotStatus(JSON.parse(rs.item(0).data));
+					}
+				});
+			});
+		}else{
+			dent.data("replystatus", dataDiv[d.in_reply_to_status_id_str].data("data"));
+		}
+	}
+
+	$.each(info, function(key,value){
+		if(typeof value == "string"){
+			$(".info", dent).append("<span>"+value+"</span>")
+		}else{
+			$(".info", dent).append(value)
+		}
+		$(".info", dent).append("<span> </span>")
+	});
+
+	function linkCheck(e){
+		if(e.ctrlKey) return false;
+		// check for Android, and then do not allow cross-tweet link click
+		// how this is Twitica "Desktop" when it support Android?
+		if(navigator.userAgent.indexOf("Android") != -1){
+			if(!e.data.dent.hasClass("selected")){
+				// instead, select this tweet
+				e.data.dent.click(); // hack!!
+				return false;
+			}
+		}
+		return true;
+	}
+	$("a", dent).each(function(){
+		if(this.href.indexOf(/\.(png|jp[e]{0,1}g|gif|swf|flv)$/) != -1){
+			$(this).bind("click", {dent:dent}, function(e){
+				if(linkCheck(e) == false) return false;
+				player = this.href;
+				if(player.indexOf(/\.(png|jp[e]{0,1}g|gif)$/) != -1) player = "img";
+				else if(player.indexOf(/\.swf$/) != -1) player = "swf";
+				else if(player.indexOf(/\.flv$/) != -1) player = "flv";
+				else player = "iframe";
+				Shadowbox.open({
+					content: $(this).attr("title"),
+					player: player,
+					title: "Attachment",
+					"width": $(window).width() * 6/7, "height": $(window).height() * 3/4,
+				});
+				e.preventDefault();
+			}).data("click", true);
+		/*}else if(this.href.indexOf("http://yfrog.com/") == 0 || this.href.indexOf("http://twitpic.com/") == 0 || this.href.indexOf("http://www.pg.in.th/p/") == 0 || this.href.indexOf("http://twitgoo.com/") == 0 || this.href.indexOf("http://tweetphoto.com/") == 0 || this.href.indexOf("http://upic.me/") == 0){
+			$(this).bind("click", {dent:dent}, function(e){
+				if(linkCheck(e) == false) return false;
+				Shadowbox.open({
+					content: $(this).attr("title"),
+					player: "iframe",
+					title: "Attachment",
+					"width": $(window).width() * 6/7, "height": $(window).height() * 3/4,
+				});
+				e.preventDefault();
+			}).data("click", true);*/
+		}else{
+			$(this).bind("click", {dent:dent}, linkCheck);
+		}
+	});
+	/*dent.css({
+		backgroundImage: "url("+d.user.profile_background_image_url+")",
+		backgroundRepeat: d.user.profile_background_tile ? "repeat" : "no-repeat", 
+
+		textShadow: "#"+d.user.profile_text_color+" 0px 0px 8px"
+	});*/
+	$("a", dent).attr("target", "_blank");
+	return dent;
+}
+
+/**
+ * Add message to timeline
+ * Please use addTweet instead
+ *
+ * @arg Object The message, as returned from Twitter API
+ * @arg Boolean If true will scroll down if autoscroll setting is true.
+ * @arg Boolean If true will slide the tweet in, otherwise just inject it
+ * @arg Boolean If true will call comnotify if the user have been mentioned
+ * @arg String Origin (twitter)
+ */
+function addMsg(d, doScroll, eff, notifyMention, kind){
+	if(dentsRendered.indexOf(d.id_str) != -1) return;
+	if(isBlocked(d.user.screen_name, ungt(d.source), ungt(d.text))){
+		return;
+	}
+	if(d.retweeted_status && isBlocked(d.retweeted_status.user.screen_name)) return;
+	if(!$.query.get("timeline")){
+		DB.transaction(function(x){
+			nd = $.extend(true, {}, d);
+			delete nd.html;
+			try{delete nd.retweeted_status.html;}catch(e){}
+			try{
+				x.executeSql('INSERT INTO scrollback (kind, data) VALUES (?, ?)', [kind, JSON.stringify(nd)], function(x, rs){
+					x.executeSql('DELETE FROM scrollback WHERE id <= ?', [rs.insertId - 21]); // garbage collection
+				});
+				// So in case that this tweet is gone, but new tweet that reply to this one isn't it still being cached.
+				x.executeSql("INSERT INTO notices (id, kind, data, creation) VALUES (?,?,?, ?)", [nd.id_str, kind, JSON.stringify(nd), new Date().getTime()]);
+			}catch(e){console.error(e, "serialization fail"); console.log(nd);}
+		});
+	}
+	
+	if(doScroll == undefined){
+		doScroll=true;
+		if(d.user.screen_name == accInfo[kind].username && d.retweeted_status) doScroll=false;
+	}
+	if(eff == undefined) eff = true;
+	if(notifyMention== undefined) notifyMention = true;
+
+	/* now onto the big job */
+	dent=processMsg(d, kind);
+	if(!dent){
+		return console.error(d, "Cannot render it properly!");
+	}
+	if(typeof dent == "string") return; // error
+	dentsRendered.push(d.id_str);
+
+	if(eff)
+		dent.css("margin-left", -1*$(window).width());
+
+	dataDiv[d.id_str] = dent;	
+	dent.appendTo("#body").addClass(kind).click(function(){
+		curPos = $(this).data("id");
+		refocus();
+	}).focus(function(){
+		$(".noticeMeta").slideUp(100, function(){$(this).remove();});
+		metad = [];
+		d = $(this).data("data");
+		kind = $(this).data("type");
+		if(dentsRendered.indexOf(d.in_reply_to_status_id_str) == -1 && $(this).data("replystatus")){
+			irp = processMsg($(this).data("replystatus"), kind);
+			offset = $(this).offset();
+			irpBox = $("<div class='noticeMeta'></div>").append(irp).appendTo("body");
+			// since we cannot get height of element not rendered, we need to flash it
+			irpBox.css({
+				"position": "absolute",
+				"top": offset.top - ($(this).height()/2) - irpBox.height() - 3,
+				"left": offset.left
+			}).hide().slideDown(250);
+		}
+		if(metad.length > 0){
+			offset = $(this).offset();
+			noticeMetad = $("<div class='noticeMeta'></div>").css({
+				"position": "absolute",
+				"top": offset.top + $(this).height() + 5,
+				"left": offset.left
+			}).appendTo("body").hide().slideDown(250);
+			$.each(metad, function(indexNotUsed, theMetad){
+				theMetad.appendTo(noticeMetad);
+			});
+		}
+	}).blur(function(){
+		//$(".noticeMeta").slideUp(100, function(){$(this).remove();}); // buggy, removed
+	}).data("type", kind).data("data", d).data("id", lastId);
+	dentsElement[lastId] = dent;
+	if(eff){
+		dent.hide().slideDown(1000);
+		setTimeout(function(dent){
+			dent.css("margin-left", 0);
+		}, 1, dent);
+	}
+	if(doScroll && curPos == lastId-1 && SET.autoscroll){
+		curPos = lastId;
+		tout=0;
+		if(eff)
+			tout = 1000;
+		setTimeout(refocus, tout);
+	}else{
+		refocus();
+	}
+	if(!d.in_reply_to_screen_name){
+		// "@ something" broke this code
+		try{
+			d.in_reply_to_screen_name = d.text.match(/^@([^ ]+) /)[1];
+		}catch(e){}
+	}
+	//if(accInfo[kind] && d.in_reply_to_screen_name == accInfo[kind]['username']){
+	if(accInfo[kind] && d.text.match(new RegExp("@"+accInfo[kind]['username']+"(?: |$)", "i"))){
+		if(notifyMention && !$.query.get("timeline")){
+			comnotify("@"+d.user.screen_name, d.text, d.user.profile_image_url);
+		}
+		dent.addClass("replied");
+	}
+	lastId++;
+}
+/**
+ * Add Twitter message
+ * @see addMsg
+ */
+function addTweet(d, doScroll, eff, notifyMention){
+	addMsg(d, doScroll, eff, notifyMention, "twitter");
+}
+/**
+ * Set the text cursor to position
+ * @todo Implement this as jQuery plugin
+ */
+function setCaretTo(node, pos) {
+	var node = (typeof node == "string" || node instanceof String) ? document.getElementById(node) : node;
+	if(!node){
+		return false;
+	}else if(node.createTextRange){
+		var textRange = node.createTextRange();
+		textRange.collapse(true);
+		textRange.moveEnd(pos);
+		textRange.moveStart(pos);
+		textRange.select();
+		return true;
+	}else if(node.setSelectionRange){
+		node.setSelectionRange(pos,pos);
+		return true;
+	}
+	return false;
+}
+/**
+ * Reply to the selected message
+ */
+function replyCur(){
+	twdata = getCurrent().data("data");
+	if(getCurrent().data("type") == "twitter")
+		in_reply_to = twdata.id_str;
+	
+	if($("footer textarea").data("elem") && $("footer textarea").data("elem").selector == getCurrent().selector
+			&& $("footer textarea").val() == "@"+twdata.user.screen_name+" "){
+		// reply to all
+		ppls = twdata.text.match(/\B(@[a-z0-9_A-Z\/]+)/g);
+		if(ppls && ppls.length > 0){
+			ppls.unshift("@"+twdata.user.screen_name);
+			ppls = ppls.unique();
+			$("footer textarea").val(ppls.join(" ")+" ");
+		}
+	}else{
+		if(twdata.retweeted_status){
+			// reply to rt
+			$("footer textarea").val("@"+twdata.retweeted_status.user.screen_name+" @"+twdata.user.screen_name+
+					" "+(twdata.retweeted_status.text.match(/\B(@[a-z0-9_A-Z\/]+)/g) || []).join(" ")+
+					$("footer textarea").val())
+				.data("mention", twdata.retweeted_status.user.screen_name);
+		}else if($("footer textarea").val().indexOf("@"+twdata.user.screen_name) == -1){
+			$("footer textarea").val("@"+twdata.user.screen_name+" "+ $("footer textarea").val())
+				.data("mention", twdata.user.screen_name);
+		}
+		$("footer textarea").data("elem", getCurrent()).keyup();
+	}
+	setCaretTo($("footer textarea").get(0), $("footer textarea").val().length);
+	$(".user").removeClass("mentioned");
+	$(".user", getCurrent()).addClass("mentioned");
+}
+/**
+ * Repeat/Retweet the selected message
+ */
+function repeatCur(){
+	type = getCurrent().data("type");
+	if(type == "twitter"){
+		if(getCurrent().data("data").user.protected && !getCurrent().data("data").retweeted_status){ // rt always rt-able!
+			notify("Cannot retweet protected tweet!");
+			return;
+		}
+		notify("Retweeting...");
+		cb = function(d){
+			try{
+				d = JSON.parse(d);
+			}catch(e){}
+			if(d.errors) d.error = d.errors;
+			if(!d.error){
+				notify("<div style='color: #afa'>Success! Retweeted</div>");
+				addTweet(d);
+			}else
+				notify("<b>ERROR:</b> "+d.error);
+		};
+		meta = {"id": getCurrent().data("data").id_str, "lat": geoPos[0], "long": geoPos[1]};
+		if(TwPlus)
+			twcom({type: "tw.retweet", data: meta}, cb);
+		else
+			$.post("auth.php?act=twretweet&xss=" + accInfo.xss, meta, cb)
+	}
+}
+/**
+ * Show the account box
+ */
+function showAccounts(){
+	window.location = "login.html";
+	return;
+}
+/**
+ * Show the upload box
+ */
+function showUploadBox(){
+	return; // not working atm.
+	$("#upload").toggle("slow");
+	$("#upload iframe").get(0).src = "auth.php?act=uplist&rnd=" + new Date().getTime();
+}
+
+// Shhh..
+$.fn.konami = function(callback, code) {
+	if(code == undefined) code = "38,38,40,40,37,39,37,39,66,65";
+	
+	return this.each(function() {
+		var kkeys = [];
+		$(this).keydown(function(e){
+			kkeys.push( e.keyCode );
+			if ( kkeys.toString().indexOf( code ) >= 0 ){
+				//$(this).unbind('keydown', arguments.callee);
+				callback(e);
+				kkeys = [];
+			}else if(code.indexOf(kkeys.toString()) != 0){
+				kkeys = [];
+			}
+		}, true);
+	});
+};
+
+var twloadtimeout;
+
+/**
+ * Fetch twitter
+ */
+function twitterLoad(periodical, callback){
+	if(TwPlus === undefined){
+		console.log("Waiting for TwPlus...");
+		return setTimeout(twitterLoad, 5, periodical, callback);
+	}
+	if(periodical == undefined) periodical = true;
+	twFirstLoadDone = true;
+	clearTimeout(twloadtimeout);
+	notify("Refreshing tweets...");
+	sendSince = "&since_id=" + last_twitter_id;
+	if(last_twitter_id == 0) sendSince=""; // user timeline do not like this
+	loadCb=function(d){
+		notify("Twitter loaded...");
+		if(d.error || d.errors){
+			notify("Twitter error!");
+			return;
+		}
+		last_twitter_id = d[0].id_str;
+		d = d.reverse();
+		$.each(d, function(k,v){addTweet(v);});
+		if(d.length > 0){
+			refocus();
+			if(curPos != lastId && SET.autoscroll){
+				setTimeout(scroll, 1000, lastId - curPos);
+			}
+		}
+	};
+	params = {user: $.query.get("user"), since_id: last_twitter_id || 0}
+	if(!params.user) delete params.user;
+	if(!params.since_id) delete params.since_id;
+	if(TwPlus)
+		twcom({type: "tw.refresh", data: {timeline: $.query.get("timeline")}, param: params}, loadCb);
+	else
+		$.getJSON("auth.php?act=twitter&xss="+accInfo.xss+"&timeline="+$.query.get("timeline")+"&user="+$.query.get("user")+sendSince, loadCb);
+	if(!periodical && callback) callback();
+	if(periodical)
+		twloadtimeout = setTimeout(twitterLoad, 60000*3);
+}
+
+var CHDfriends;
+/**
+ * Parse events
+ *
+ * @since 23 April 2010
+ */
+function chirpParse(d){
+	if(d.text){
+		last_twitter_id = d.id_str;
+		d.user.following = CHDfriends.indexOf(d.user.id) != -1;
+		addTweet(d);
+	}else if(d.friends){
+		CHDfriends = d.friends;
+	/* Events intentionally not handled: retweet */
+	}else if(d.event == "follow"){
+		if(d.target.id == accInfo.twitter.data.id){
+			notify("<b>"+d.source.screen_name+"</b> on Twitter started following you.");
+		}
+	}else{
+		console.log(d, "CHIRP_newkind");
+	}
+}
+
+/**
+ * TwPlus User stream bridge
+ * Basically it is a duplicate of chirp.js
+ *
+ * @since 5 September 2010
+ */
+var CHDlastInd = 0;
+function twplus_chirp(){
+	if($.query.get("nostream")) return twitterLoad();
+	twcom({type: "tw.chirp"});
+	$("#twiticom-chirpD").get(0).onmouseup = function(){
+		h=$(this).html();
+		if(h=="loginerror"){
+			notify("[+] Cannot login to user stream!");
+		}else if(h == "connected"){
+			notify("[+] Connected to user stream");
+			CHDlastInd = 0;
+			chirpConnected = new Date().getTime();
+			$("#refreshbut").hide();
+			chirpClearFallback = setTimeout(function(){chirpFallback = 2.5}, 5000);
+		}else if(h == "lostcon"){
+			if(chirpConnected === false || new Date().getTime() - chirpConnected < 5000){
+				notify("[+] Couldn't connect to Twitter stream.");
+				clearTimeout(chirpClearFallback);
+				$("#refreshbut").show();
+				twitterLoad();
+			}else if(chirpFallback >= 80){
+				notify("[+] Couldn't connect to Twitter stream. Will now refresh");
+				$("#refreshbut").show();
+				twitterLoad();
+			}else{
+				notify("[+] Twitter stream Error! Will retry soon.");
+				chirpFallback *= 2;
+				setTimeout(function(){twcom({type: "tw.chirp"});}, chirpFallback*1000);
+			}
+		}
+	};
+	$("#twiticom-chirp").get(0).onmouseup = function(){
+		res = decodeURIComponent($(this).html());
+		// clone of parser algorithm 2 in chirp.js
+		d=res.replace(/^\s+|\s+$/, '').substring(CHDlastInd).split(/([\r\n]+|$)/);
+		var buffer = "";
+		d.forEach(function(me){ // for each un-parsed line
+			buffer += me;
+			if((me.replace(/^\s+|\s+$/, '') == "" || me[me.length-1] == "}") && buffer.replace(/^\s+|\s+$/, '') != ""){
+				try{
+					chirpParse(JSON.parse(buffer)); // then parse it
+				}catch(e){
+					if(me.replace(/^\s+|\s+$/, '') == ""){
+						console.error(e);
+						console.log(buffer, me);
+					}
+					return;
+				}
+				CHDlastInd += buffer.length;
+				buffer = "";
+			}
+		});
+	};
+}
+
+/**
+ * Web Worker bridge, the worker source is at chirp.js
+ *
+ * @since 5 June 2010
+ */
+var chirpFallback = 2.5, chirpConnected = false, chirpClearFallback;
+function chirp(){
+	return twplus_chirp();
+}
+
+/**
+ * Search
+ * @arg Boolean True to search up, false to search down
+ */
+function search(dir){
+	// up; dir=true
+	keyword = $("footer textarea").val().toLowerCase()
+	if(keyword == "omg"){
+		// <Chicken7> *Guthix's voice* No! There must be balance, so you must receive any disclipining for your unbalanced remarks!
+		/* TODO: Guthix is unreliable when I pray. Saradomin is homo. Find a better god. */
+		notify("Oh my Guthix !<br>You discovered this easter egg!");
+	}
+	if(dir){
+		dirN = "above";
+	}else{
+		dirN = "below";
+	}
+	lookIn = 0;
+	while(true){
+		if(dir) lookIn-=1;
+		else lookIn+=1;
+		ele = dentsElement[curPos+lookIn];
+		if(ele === undefined) break;
+		if($(".user", ele).text().toLowerCase().indexOf(keyword) != -1 || $(".noticebody", ele).text().toLowerCase().indexOf(keyword) != -1){
+			curPos = ele.data("id"); refocus();
+			return false;
+		}
+	}
+	notify("Sorry, no match "+dirN);
+}
+var geoPollerID=undefined;
+function geoPoller(){
+	geoPollerID = geo.watchPosition(function(pos){
+		lat = Math.round(pos.coords.latitude*Math.pow(10,3))/Math.pow(10,3)
+		lon = Math.round(pos.coords.longitude*Math.pow(10,3))/Math.pow(10,3)
+		if(lat && lon && lat !== 0 && lon !== 0){
+			geoPos = [lat, lon];
+			if((geoPos[0] != lat && geoPos[1] != lon) || $("#geoloc").html() == ""){
+				mapCallback = function(res){
+					$("#geoloc").html("<img src='marker.png' />"+res.results[0].formatted_address).attr("title", res.results[0].formatted_address);
+					$("#geoloc").click(function(){
+						if(navigator.userAgent.indexOf("Android") != -1){
+							window.location = "http://maps.google.com/maps?q="+lat+","+lon+"&z=17";
+							return false;
+						}
+						geoMap = $("<div>Loading map...</div>").css({
+							"width": $(window).width() * 6/7, "height": $(window).height() * 3/4,
+							"text-align": "center", "font-size": "16pt",
+						});
+						Shadowbox.open({
+							content: geoMap,
+							player: "jquery",
+							title: "Your current position"
+						});
+						setTimeout(function(geoMap){
+							geoMap.gMap({
+								markers: [{latitude: lat, longitude: lon, html: "<span style='color:black'>"+res.results[0].formatted_address+"</span>"}],
+								zoom: 17,
+								latitude: lat, longitude: lon,
+								controls: ["GMapTypeControl", "GSmallZoomControl3D"],
+							});
+						}, 1200, geoMap);
+						return false;
+					});
+				};
+				if(TwPlus)
+					twcom({type: "geo", data: {latlng: lat+","+lon}}, mapCallback);
+				else
+					$.getJSON("geocode.json?latlng="+lat+","+lon+"&sensor=true", mapCallback);
+			}
+		}
+	});
+}
+var konami=false;
+
+$(function(){
+	// Detect unsupported browsers. If this list is changed, be sure to edit unsupported.html
+	if(!geo || !window.localStorage || !window.JSON || !window.XMLHttpRequest || !window.openDatabase){
+		unsupported();
+		return false;
+	}
+	if(window.webkitNotifications && window.webkitNotifications.checkPermission() != 0){
+		$(window).click(function(){
+			if(window.webkitNotifications) window.webkitNotifications.requestPermission();
+			geo.getPermission("Twitica Desktop", null, "No geolocation data will be sent to Twitter if you choose Deny. Sent data will be rounded to 3 floating point.");
+			$(window).unbind("click");
+		});
+	}
+	DB = window.openDatabase("TwiticaDesktop", "1", "Twitica Desktop's old notices storage", 1024*1024);
+	DB.transaction(function(x){
+		x.executeSql('SELECT * FROM scrollback LIMIT 1', null, function(){}, function(){
+			// so, create the db!
+			x.executeSql('CREATE TABLE scrollback (id INTEGER PRIMARY KEY AUTOINCREMENT, data BLOB, kind TEXT)');
+		})
+		x.executeSql('DELETE FROM notices WHERE creation <= ?', [new Date().getTime() - (3600)], function(){}, function(){
+			x.executeSql('CREATE TABLE notices (id INTEGER PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
+		})
+	});
+	if(!localStorage.blockKey) localStorage.blockKey = "";
+	// detect TwiticaDesktop+
+	setTimeout(function(){
+		if($("#twiticom").length == 1){
+			TwPlus = true;
+			console.log("TwiticaDesktop+ detected.");
+			document.title = document.title+" [+]";
+			$("#twiticom").get(0).onmouseup = function(){
+				d=JSON.parse(decodeURIComponent($(this).html()));
+				_twcom_callbacks[d.id](d.data);
+				delete _twcom_callbacks[d.id];
+			};
+			twcom({type: "tw.info"}, function(d){
+				accInfo = {twitter: {username: d.screen_name, data: d}};
+				// update the page title to the beta status if detected
+				titleAdd = " ";
+				if(window.location.pathname.indexOf(".dev") != -1){
+					titleAdd += "[Trunk]";
+				}
+				titleAdd += "[+]";
+				if($.query.get("timeline") == "replies"){
+					document.title = "Mentions to @"+d.screen_name+" | Twitica Desktop"+titleAdd;
+				}else if($.query.get("timeline") == "user"){
+					document.title = "@"+$.query.get("user")+" from @"+d.screen_name+" | Twitica Desktop"+titleAdd;
+				}else{
+					document.title = "@"+d.screen_name+" | Twitica Desktop"+titleAdd;
+				}
+				if(!SET.nogeo) geoPoller();
+			});
+		}else{
+			TwPlus = false;
+			console.warn("TwiticaDesktop+ not detected.");
+			$.getJSON("auth.php?act=get", function(d){
+				accInfo = d;
+				if(d && d.twitter.username){
+					timeline = $.query.get("timeline");
+					if(timeline != "user"){
+						load = 50;
+						if(!timeline){
+							timeline = "all";
+							load = 0;
+						}
+					}
+				}else{
+					showAccounts();
+					return false;
+				}
+				// update the page title to the beta status if detected
+				titleAdd = " ";
+				if(window.location.pathname.indexOf(".dev") != -1){
+					titleAdd += "[Trunk]";
+				}
+				if($.query.get("timeline") == "replies"){
+					document.title = "Mentions to @"+d.twitter.username+" | Twitica Desktop"+titleAdd;
+				}else if($.query.get("timeline") == "user"){
+					document.title = "@"+$.query.get("user")+" from @"+d.twitter.username+" | Twitica Desktop"+titleAdd;
+				}else{
+					document.title = "@"+d.twitter.username+" | Twitica Desktop"+titleAdd;
+				}
+				if(!SET.nogeo) geoPoller();
+			});
+		}
+	}, 500);
+	$("footer textarea").keyup(function(e){
+		if(e.which != 9)
+			$(this).data("autocomplete", null);
+		left = 140 - this.value.length;
+		$("#lencounter").html(left);
+		if($(this).data("mention")){
+			if(this.value.indexOf("@" + $(this).data("mention") + " ") != 0){
+				$(".user", $(this).data("elem")).removeClass("mentioned");
+				$(this).data("mention", "").data("elem", null);
+				in_reply_to = null;
+			}
+		}
+		if(left < 0){
+			this.style.backgroundColor = "red";
+		}else if(this.style.backgroundColor != "#111"){
+			this.style.backgroundColor = "#111";
+		}
+	});
+	$("#account, #upload").hide();
+	$(window).keydown(function(e){
+		if(e.target.type == "text" || e.target.type == "password") return;
+		kmul = konami ? -1 : 1;
+		if($("footer textarea").val().length == 0 || e.which == 33 || e.which == 34){
+			if(e.which == 38 || e.which == 33 || e.which == 40 || e.which == 34){
+				e.preventDefault();
+				if(e.which == 38)
+					scroll(-1 * kmul);
+				else if(e.which == 33)
+					scroll(-10 * kmul);
+				else if(e.which == 40)
+					scroll(1 * kmul);
+				else
+					scroll(10 * kmul);
+			}else if((e.which == 35 && !konami) || (e.which == 36 && konami)){
+				scroll(lastId - curPos);
+				e.preventDefault();
+			}else if((e.which == 36 && !konami) || (e.which == 35 && konami)){
+				scroll((-1*curPos)-1);
+				e.preventDefault();
+			}else if(e.which == 13){
+				e.preventDefault();
+				firstLink = $(".noticebody a[rel*=external]:eq(0)", getCurrent());
+				if(firstLink.length > 0){
+					if(firstLink.data("click")){
+						firstLink.click();
+					}else{
+						window.open(firstLink.attr("href"), '_blank');
+					}
+				}else{
+					notify("No links found");
+				}
+			}
+		}
+		if(e.ctrlKey){ 
+			if(e.which == 89){
+				replyCur();
+				e.preventDefault();
+			}else if(e.which == 69){
+				repeatCur();
+				e.preventDefault();
+			}else if(e.which == 82){
+				if(!CHD.xhr)
+					twitterLoad();
+				e.preventDefault();
+			}else if(e.which == 70){
+				search(true);
+				e.preventDefault();
+			}else if(e.which == 71){
+				search(false);
+				e.preventDefault();
+			}else if(e.which == 77){
+				window.open("?timeline=replies", 'repliestimeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+				e.preventDefault();
+			}else if(e.which == 85){
+				showUploadBox();
+				e.preventDefault();
+			}else if(e.which == 83){
+				urls = $("footer textarea").val().match(/(https?:\/\/|www\.)(\S*\w+)+/g);
+				urls = $.unique(urls);
+				notify("Shortening URLs");
+				if(TwPlus){
+					urls.forEach(function(me){
+						twcom({type: "shorten", url: me}, function(res){
+							ov = $("footer textarea").val();
+							ov = ov.replace(res.old, res.url);
+							$("footer textarea").val(ov);
+						});
+					});
+				}else{
+					$.get("auth.php", {act: "shorten", "url": JSON.stringify(urls)}, function(o){
+						o = o.split("\n")
+						$.each(o, function(k,d){
+							d = d.split("\t")
+							if(d.length != 2) return true;
+							ov = $("footer textarea").val();
+							ov = ov.replace(d[0], d[1]);
+							$("footer textarea").val(ov);
+						});
+						notify("URLs shortened");
+					});
+				}
+				e.preventDefault();
+			}else if(e.which == 75){
+				bk = prompt("Keywords to block? Prefix with src: to block a client, user: to block a user. Regex OK. Split with ||", localStorage.blockKey);
+				if(!bk) return
+				notify("Blocked "+bk.split("||").length+" conditions");
+				localStorage.blockKey = bk;
+			}
+		}
+		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo"].sort();
+		if(e.which == 13 && $("footer textarea").val().length > 0){
+			txt = $("footer textarea").val();
+			if($.trim(txt) == "/ytplaying"){
+				e.preventDefault();
+				if(!TwPlus){
+					notify("You need to install Twitica Desktop+ to use this command.");
+				}else{
+					twcom({type: "ytplaying"}, function(resp){
+						if(resp.length  > 1) notify("This command only works with only one YouTube tab.");
+						else if(resp.length == 0) notify("No YouTube open");
+						else{
+							$("footer textarea").val("#nowplaying " + resp[0]['title'] + " " + resp[0]['url']);
+						}
+					});
+				}
+				return;
+			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo)(?: +|$)/)){
+				toggleSet  = toggleSet[1];
+				SET[toggleSet] = !SET[toggleSet]
+				localStorage.config = JSON.stringify(SET);
+				setName = {bgimg: "Background image", nothai: "No Thai input", autoscroll: "Auto scrolling", nogeo: "Disable geolocation"}
+				if(SET[toggleSet] == true) notify(setName[toggleSet]+" <strong>ON</strong>");
+				else notify(setName[toggleSet]+" <strong>OFF</strong>");
+				if(toggleSet == "nogeo" && SET[toggleSet]){
+					navigator.geolocation.clearWatch(geoPollerID);
+					$("#geoloc").fadeOut();
+				}else if(toggleSet == "nogeo" && !SET[toggleSet]){
+					geoPoller();
+					$("#geoloc").fadeIn();
+				}
+				e.preventDefault();
+				$("footer textarea").val("")
+				return;
+			}else if($.trim(txt).indexOf("/") == 0 && $.trim(txt).indexOf("//") != 0 && TwPlus){
+				notify("You mistyped a command? You only can send // in tweet.");
+				e.preventDefault();
+				return;
+			}
+			if(SET.nothai && txt.match(/([ก-๙]+)/)){
+				notify("/nothai is ON, you can't tweet in Thai!");
+				e.preventDefault();
+				return;
+			}
+			sendTweet(txt);
+			$("footer textarea").val("")
+				.data("mention", null)
+				.data("elem", null)
+				.data("autocomplete", null);
+			$(".mentioned").removeClass("mentioned");
+			e.preventDefault();
+		}else if(e.which == 9 && $.trim($("footer textarea").val()).indexOf("/") == 0){
+			e.preventDefault();
+			moreTab = $("footer textarea").data("autocomplete");
+			if(moreTab) kwd = moreTab.kwd;
+			else kwd = $.trim($("footer textarea").val()).substr(1);
+			if(moreTab && moreTab.output.length > 0){
+				output = moreTab.output;
+			}else{
+				indMatchLength = [];
+				cmds.forEach(function(v, ind){
+					if(v.indexOf(kwd) == 0)
+						indMatchLength.push([ind, v.match(kwd)[0].length]);
+				});
+				if(indMatchLength.length == 0){
+					notify("No autocomplete match for commands.");
+					return;
+				}
+				output = indMatchLength;
+			}
+			iUseThis = output.shift();
+			// okay now we got the command
+			$("footer textarea").val("/"+cmds[iUseThis[0]]+" ").data("autocomplete", {kwd: kwd, output: output});
+			setCaretTo($("footer textarea").get(0), $("footer textarea").val().length);
+		}else if(e.which == 90 && failtweet){
+			in_reply_to = failtweet[1];
+			$("footer textarea").val(failtweet[0]);
+			e.preventDefault();
+		}
+		$("footer textarea").get(0).focus();
+	});
+	$("#body").css({marginTop: $(window).height()*0.8, marginBottom: $(window).height()*0.8});
+	$(window).resize(function(){
+		if(navigator.userAgent.indexOf("Android") == -1)
+			$("#body").css({marginTop: $(window).height()*0.8, marginBottom: $(window).height()*0.8});
+		refocus();
+	});
+	$(window).mousewheel(function(e,d){
+		scroll(Math.floor(d)*(konami?1:-1));
+		refocus()
+	});
+	$(window).konami(function(){
+		konami = !konami;
+		$("#body").css("-webkit-transition", "-webkit-transform 3s ease-in-out");
+		//setTimeout(function(){$("#body").css("-webkit-transform", "rotatey("+(konami?"180":"0")+"deg)");}, 1);
+		setTimeout(function(){
+			$("#body").css("-webkit-transform", "rotatex("+(konami?"180":"0")+"deg)");
+			if(konami){
+				$("<style id='konamic'>article{-webkit-transform: rotatex(180deg);}</style>").appendTo('body');
+			}else{
+				$("#konamic").remove();
+			}
+			setTimeout(refocus, 3000);
+		}, 1);
+	});
+	if(!localStorage.config)
+		localStorage.config = '{"nogeo": true}';
+	SET = JSON.parse(localStorage.config);
+	
+	if(!$.query.get("timeline")){
+		DB.transaction(function(x){
+			x.executeSql("SELECT * FROM scrollback", null, function(x, rs){
+				rs = rs.rows;
+				for(i=0; i<rs.length; i++){
+					d = rs.item(i);
+					if(d.kind == "twitter") addTweet(JSON.parse(d.data), false, false, false);
+					last_twitter_id = d.id_str;
+				}
+				scroll($("#body article").length);
+				if(!$.query.get("nostream") && navigator.userAgent.indexOf("Android") == -1){ // Android runs buggy with chirp
+					twitterLoad(false, chirp); // User Stream Suggestions: Connections>Churn>Delay opening a stream in case user quit quickly
+				}else{
+					twitterLoad();
+				}
+			});
+		});
+	}else{
+		twitterLoad();
+	}
+	
+	Shadowbox.init({
+	    skipSetup: true
+	});
+	
+	if(navigator.userAgent.indexOf("Android") != -1){
+		$("header div>small").remove();
+		$("#body").css({marginTop: $("header").height(), marginBottom: $("footer").height()});
+		$("#menubutt li span").each(function(){
+			slowlyPutOut($(this));
+		});
+		$("#geoloc").css("width", "60px");
+	}
+	setTimeout(function(){$("header .info").slideUp()}, 60000);
+});
+	</script>
+</head>
+<body>
+<!--<div id="upload">
+	<h1>File upload</h1>
+	<form action="auth.php?act=upload" method="post"  enctype='multipart/form-data' target='upiframe'>
+		<input name='file' type=file>
+		<input type="submit" value="Upload">
+	</form><br />
+	<iframe src="auth.php?act=uplist" id="upiframe" name="upiframe" style="width: 100%; height: 50px;border:none; color:black; background: rgba(255,255,255,0.8)"></iframe>
+	<br />
+</div>-->
+<div id="notify">
+</div>
+<header>
+	<menu id="menubutt" type="toolbar">
+		<li><a href="#" onclick="twitterLoad(); return false;" id="refreshbut"><b>R</b><span>efresh</span></a></li>
+		<li><a href="#" onclick="repeatCur(); return false;"><span>R</span><b>e</b><span>peat</span></a></li>
+		<li><a href="#" onclick="replyCur(); return false;"><span>Repl</span><b>y</b></a></li>
+		<!--<li>▼</li>--> <!-- TODO: Wait for HTML5 nested menu -->
+	</menu>
+	<div class="right">
+		<menu>
+			<li id="geoloc"></li>
+			<li id="twcounter">0/0</li>
+			<li id="lencounter">140</li>
+		</menu>
+	</div>
+	<br style="clear: both;">
+	<!--<div class="info"></div>-->
+</header>
+<div id="body">
+</div>
+<footer>
+	<textarea id="input" rows="2" autofocus placeholder="Type your notice here. Press ctrl+s to shorten URLs. Type and press ctrl+f to search up, ctrl+g to search down."></textarea>
+</footer>
+<script src="twplus/bridge.js" type="text/javascript"></script>
+</body>
+</html>
