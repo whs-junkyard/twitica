@@ -359,7 +359,7 @@ function getCurrent(){
  * @arg String Content
  * @return Boolean
  */
-function isBlocked(user, src, txt){
+function isBlocked(user, src, txt, following){
 	keys = localStorage.blockKey.split("||");
 	blocked = false;
 	keys.forEach(function(x){
@@ -384,7 +384,23 @@ function isBlocked(user, src, txt){
 			}
 		}
 	});
-	return blocked;
+	// anti-spam
+	spam = false;
+	if(!following){
+		threshold = 4;
+		current = 0;
+		if(src == "web") current += 1;
+		if(txt.indexOf("@"+accInfo['twitter'].username) == 0) current += 2;
+		else if(txt.indexOf("@"+accInfo['twitter'].username) != -1) current += 1;
+		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch"].forEach(function(x){
+			if(txt.match(new RegExp(x, "i"))) current += 1;
+		});
+		if(current > threshold){
+			spam=true;
+			console.log({"text": txt, "user": user, "src": src}, "spam");
+		}
+	}
+	return blocked || spam;
 }
 /**
  * Scroll to the selected notice
@@ -745,7 +761,7 @@ function processMsg(d, kind){
  */
 function addMsg(d, doScroll, eff, notifyMention, kind){
 	if(dentsRendered.indexOf(d.id_str) != -1) return;
-	if(isBlocked(d.user.screen_name, ungt(d.source), ungt(d.text))){
+	if(isBlocked(d.user.screen_name, ungt(d.source), ungt(d.text), d.user.following)){
 		return;
 	}
 	if(d.retweeted_status && isBlocked(d.retweeted_status.user.screen_name)) return;
