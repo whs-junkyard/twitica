@@ -115,6 +115,8 @@ function handle(what, who, how){
 			});
 			how(out);
 		});
+	}else if(what.type == "friends"){
+		return Tw.get("statuses/friends", what.data, how);
 	}
 }
 function chirp(port){

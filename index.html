@@ -1030,10 +1030,26 @@ function chirpParse(d){
 		addTweet(d);
 	}else if(d.friends){
 		CHDfriends = d.friends;
+		DB.transaction(function(x){
+			x.executeSql("SELECT * FROM following", null, function(x, rs){
+				rs = rs.rows;
+				for(i=0; i<rs.length; i++){
+					d = rs.item(i);
+					if(CHDfriends.indexOf(d.id) == -1){
+						// user have unfollowed, remove target
+						x.executeSql("DELTE FROM following WHERE id=?", [d.id]);
+					}
+				}
+			});
+		});
 	/* Events intentionally not handled: retweet */
 	}else if(d.event == "follow"){
 		if(d.target.id == accInfo.twitter.data.id){
 			notify("<b>"+d.source.screen_name+"</b> on Twitter started following you.");
+		}else if(d.source.id == accInfo.twitter.data.id){
+			DB.transaction(function(x){
+				x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d.target.id, d.target.screen_name, JSON.stringify(d.target), "twitter"]);
+			});
 		}
 	}else{
 		console.log(d, "CHIRP_newkind");
@@ -1184,6 +1200,22 @@ function geoPoller(){
 		}
 	});
 }
+
+/**
+ * Load Twitter following list
+ */
+function loadFollowing(){
+	return;
+	if(!TwPlus) return;
+	if(new Date().getTime() - localStorage.lastFollowLoad < 3600*24) return;
+	twcom({type: "friends", "data": {cursor: -1}}, function(out){
+		DB.transaction(function(x){
+			//out.forEach(
+			x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d.target.id, d.target.screen_name, JSON.stringify(d.target), "twitter"]);
+		});
+		localStorage.lastFollowLoad = new Date().getTime();
+	});
+}
 var konami=false;
 
 $(function(){
@@ -1203,10 +1235,14 @@ $(function(){
 	DB.transaction(function(x){
 		x.executeSql('SELECT * FROM scrollback LIMIT 1', null, function(){}, function(){
 			// so, create the db!
-			x.executeSql('CREATE TABLE scrollback (id INTEGER PRIMARY KEY AUTOINCREMENT, data BLOB, kind TEXT)');
-		})
+			x.executeSql('CREATE TABLE scrollback (id BIGINT PRIMARY KEY AUTOINCREMENT, data BLOB, kind TEXT)');
+		});
 		x.executeSql('DELETE FROM notices WHERE creation <= ?', [new Date().getTime() - (3600)], function(){}, function(){
-			x.executeSql('CREATE TABLE notices (id INTEGER PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
+			x.executeSql('CREATE TABLE notices (id BIGINT PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
+		});
+		x.executeSql('SELECT * FROM following', null, function(){}, function(){
+			localStorage.lastFollowLoad = 0;
+			x.executeSql('CREATE TABLE following (id BIGINT PRIMARY KEY AUTOINCREMENT, name TEXT, data BLOB, kind TEXT)');
 		})
 	});
 	if(!localStorage.blockKey) localStorage.blockKey = "";
@@ -1237,6 +1273,7 @@ $(function(){
 					document.title = "@"+d.screen_name+" | Twitica Desktop"+titleAdd;
 				}
 				if(!SET.nogeo) geoPoller();
+				loadFollowing();
 			});
 		}else{
 			TwPlus = false;
