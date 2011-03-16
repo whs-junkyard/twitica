@@ -386,7 +386,7 @@ function isBlocked(user, src, txt, following){
 	});
 	// anti-spam
 	spam = false;
-	if(!following){
+	if(!following && user && txt && src){
 		threshold = 4;
 		current = 0;
 		if(src == "web") current += 1;
