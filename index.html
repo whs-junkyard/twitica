@@ -386,7 +386,7 @@ function isBlocked(user, src, txt, following){
 	});
 	// anti-spam
 	spam = false;
-	if(!following && user && txt && src){
+	if(accInfo['twitter'] && !following && user && txt && src){
 		threshold = 4;
 		current = 0;
 		if(src == "web") current += 1;
@@ -1251,7 +1251,9 @@ $(function(){
 	DB.transaction(function(x){
 		x.executeSql('SELECT * FROM scrollback LIMIT 1', null, function(){}, function(){
 			// so, create the db!
-			x.executeSql('CREATE TABLE scrollback (id BIGINT PRIMARY KEY, data BLOB, kind TEXT)', null, null, function(){console.log(arguments);});
+			x.executeSql('CREATE TABLE scrollback (id INTEGER PRIMARY KEY AUTOINCREMENT, data BLOB, kind TEXT)', null, function(){
+				twitterLoad(false, chirp);
+			}, function(){console.error(arguments);});
 		});
 		x.executeSql('DELETE FROM notices WHERE creation <= ?', [new Date().getTime() - (3600)], function(){}, function(){
 			x.executeSql('CREATE TABLE notices (id BIGINT PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
