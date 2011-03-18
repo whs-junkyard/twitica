@@ -1251,14 +1251,14 @@ $(function(){
 	DB.transaction(function(x){
 		x.executeSql('SELECT * FROM scrollback LIMIT 1', null, function(){}, function(){
 			// so, create the db!
-			x.executeSql('CREATE TABLE scrollback (id BIGINT PRIMARY KEY AUTOINCREMENT, data BLOB, kind TEXT)');
+			x.executeSql('CREATE TABLE scrollback (id BIGINT PRIMARY KEY, data BLOB, kind TEXT)', null, null, function(){console.log(arguments);});
 		});
 		x.executeSql('DELETE FROM notices WHERE creation <= ?', [new Date().getTime() - (3600)], function(){}, function(){
 			x.executeSql('CREATE TABLE notices (id BIGINT PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
 		});
 		x.executeSql('SELECT * FROM following', null, function(){}, function(){
 			localStorage.lastFollowLoad = 0;
-			x.executeSql('CREATE TABLE following (id BIGINT PRIMARY KEY AUTOINCREMENT, name TEXT, data BLOB, kind TEXT)');
+			x.executeSql('CREATE TABLE following (id BIGINT PRIMARY KEY, name TEXT, data BLOB, kind TEXT)');
 		})
 	});
 	if(!localStorage.blockKey) localStorage.blockKey = "";
