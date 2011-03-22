@@ -1,6 +1,6 @@
 {
 	"name": "Twitica Desktop",
-	"version": "1.5.3",
+	"version": "1.6",
 	"description": "A Twitter client focusing on timeline view.",
 	"options_page": "twplus/options.html",
 	"app": {
@@ -26,13 +26,6 @@
 		"48": "logo48.png",
 		"128": "logo.png"
 	},
-	"content_scripts": [
-		{
-			"matches": ["https://api.twitter.com/oauth/*"],
-			"js": ["jquery.js", "twplus/getPIN.js"],
-			"run_at": "document_end"
-		}
-	],
 	"minimum_chrome_version":  "7.0",
 	"background_page" : "twplus/handler.html"
 }

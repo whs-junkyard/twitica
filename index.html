@@ -392,7 +392,7 @@ function isBlocked(user, src, txt, following){
 		if(src == "web") current += 1;
 		if(txt.indexOf("@"+accInfo['twitter'].username) == 0) current += 2;
 		else if(txt.indexOf("@"+accInfo['twitter'].username) != -1) current += 1;
-		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch"].forEach(function(x){
+		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch", "Trip"].forEach(function(x){
 			if(txt.match(new RegExp(x, "i"))) current += 1;
 		});
 		if(current > threshold){
@@ -446,6 +446,8 @@ function refocus(){
 		document.title = prefix+" "+title;
 	}else
 		document.title = title
+	if(TwPlus)
+		twcom({"type": "refocus", "count": count, "mention": mentionCnt});
 	$("#twcounter").html(count+"/"+lastId);
 	
 	if(navigator.userAgent.indexOf("Android") != -1) return 0;
@@ -1380,7 +1382,9 @@ $(function(){
 				}
 			}
 		}
-		if(e.ctrlKey){ 
+		cmdKey = e.ctrlKey;
+		if(navigator.userAgent.match("Macintosh")) cmdKey = e.metaKey;
+		if(cmdKey){ 
 			if(e.which == 89){
 				replyCur();
 				e.preventDefault();
