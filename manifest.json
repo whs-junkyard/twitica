@@ -1,6 +1,6 @@
 {
 	"name": "Twitica Desktop",
-	"version": "1.6.1",
+	"version": "1.6.2",
 	"description": "A Twitter client focusing on timeline view.",
 	"options_page": "twplus/options.html",
 	"app": {
@@ -17,6 +17,7 @@
 		"https://userstream.twitter.com/",
 		"http://maps.google.com/",
 		"https://api-ssl.bit.ly/",
+		"http://api.twitpic.com/",
 		"tabs",
 		"notifications",
 		"geolocation"

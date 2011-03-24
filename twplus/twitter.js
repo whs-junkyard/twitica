@@ -177,3 +177,19 @@ Twitter.prototype.get = function(){
 Twitter.prototype.post = function(){
 	return this._doRequest.apply(this, prototype_merge(["post"], arguments));
 };
+/**
+ * Sign a request for OAuth Echo
+ */
+Twitter.prototype.sign = function(url){
+	if(url === undefined) url = "https://api.twitter.com/1/account/verify_credentials.json";
+	if(url.indexOf("http://") != 0) url = "https://api.twitter.com/1/" + url + ".json";
+	msg = {
+		method: "GET",
+		action: url,
+		parameters: null
+	};
+	reqBody = OAuth.formEncode(msg.parameters);
+	OAuth.completeRequest(msg, this.consumer);
+	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
+	return authHeader;
+}

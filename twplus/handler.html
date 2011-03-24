@@ -100,6 +100,8 @@ function handle(what, who, how){
 		$.getJSON("https://api-ssl.bit.ly/v3/shorten?login=manatsawin&apiKey=R_fe0508be39d31d16b36c8ae014d4bfc4&format=json&domain=j.mp&longUrl="+encodeURIComponent(what.url), {}, (function(how,d){
 			how({url: d.data.url, old: d.data.long_url});
 		}).bind(this, how));
+	}else if(what.type == "echo"){
+		return how(Tw.sign());
 	}else if(what.type == "ytplaying"){
 		// find yt window
 		var out = [];
