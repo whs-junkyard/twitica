@@ -13,6 +13,7 @@
 	<script src="easing.js" type="text/javascript"></script>
 	<script src="base64.js" type="text/javascript"></script>
 	<script src="twitter-text.js" type="text/javascript"></script>
+	<script src="imageupload.js" type="text/javascript"></script>
 	<style type="text/css">
 /* externals */
 @import url(shadowbox/shadowbox.css);
@@ -683,7 +684,9 @@ function processMsg(d, kind){
 	});
 
 	function linkCheck(e){
-		if(e.ctrlKey) return false;
+		console.log(e.ctrlKey);
+		console.log(e.metaKey);
+		if(e.ctrlKey || e.metaKey) return false;
 		// check for Android, and then do not allow cross-tweet link click
 		// how this is Twitica "Desktop" when it support Android?
 		if(navigator.userAgent.indexOf("Android") != -1){
@@ -696,9 +699,9 @@ function processMsg(d, kind){
 		return true;
 	}
 	$("a", dent).each(function(){
-		if(this.href.indexOf(/\.(png|jp[e]{0,1}g|gif|swf|flv)$/) != -1){
-			$(this).bind("click", {dent:dent}, function(e){
-				if(linkCheck(e) == false) return false;
+		if(this.href.match(/\.(png|jp[e]{0,1}g|gif|swf|flv)$/)){
+			$(this).bind("click", function(e){
+				if(linkCheck(e) == false) return true;
 				player = this.href;
 				if(player.indexOf(/\.(png|jp[e]{0,1}g|gif)$/) != -1) player = "img";
 				else if(player.indexOf(/\.swf$/) != -1) player = "swf";
@@ -723,6 +726,15 @@ function processMsg(d, kind){
 				});
 				e.preventDefault();
 			}).data("click", true);*/
+		}else if(this.href.match(/^http[s]{0,1}:\/\/twitpic.com\//) || 
+				this.href.match(/^http[s]{0,1}:\/\/plixi.com\/p\//) ||
+				this.href.match(/^http[s]{0,1}:\/\/lockerz.com\/s\//)){
+			$(this).bind("click", function(e){
+				if(linkCheck(e) == false) return true;
+				notify("Loading image...");
+				ImageUpload.viewer.shadowbox(this.href);
+				e.preventDefault();
+			}).data("click", true);
 		}else{
 			$(this).bind("click", {dent:dent}, linkCheck);
 		}
