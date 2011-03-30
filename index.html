@@ -8,6 +8,7 @@
 	<script src="jquery.js" type="text/javascript"></script>
 	<script src="twplus/sha1.js"></script>
 	<script src="twplus/oauth.js"></script>
+	<script src="twplus/twitter.js"></script>
 	<script src="shadowbox/shadowbox.js" type="text/javascript"></script>
 	<script src="mousewheel.js" type="text/javascript"></script>
 	<script src="query.js" type="text/javascript"></script>
@@ -231,7 +232,7 @@ var curPos=0, lastId=0, accInfo = {}, dentsRendered=[], dentsElement=[];
 var geo = navigator.geolocation;
 var geoPos = [null,null];
 var last_twitter_id = 0, flickering = false, bgTimeout;
-var SET, twFirstLoadDone, dataDiv = {}, DB, TwPlusAPI="chrome", failtweet;
+var SET, twFirstLoadDone, dataDiv = {}, DB, TwPlusAPI="chrome", failtweet, Tw;
 google.load("earth", "1");
 
 /**
@@ -304,11 +305,83 @@ var _twcom_callbacks = {};
  * @arg Any The message
  * @arg Function callback function
  */
-function twcom(msg, callback){
-	id=new Date().getTime();
-	_twcom_callbacks[id] = callback || function(){};
-	if(TwPlusAPI == "chrome"){
-		$("#twiticom").html(encodeURIComponent(JSON.stringify({id: id, data: msg}))).mousedown();
+function twcom(what, callback){
+	if(what.type == "geo"){
+		return $.getJSON("http://maps.google.com/maps/api/geocode/json?sensor=true&"+$.param(what.data), callback);
+	}else if(what.type == "tw.info"){
+		callback(JSON.parse(localStorage.twitterData));
+	}else if(what.type == "tw.refresh"){
+		if(!Tw){
+			console.error("No OAuth!");
+			return false;
+		}
+		if(!what.data.timeline) what.data.timeline = "home";
+		if(what.data.timeline == "replies") what.data.timeline = "mentions";
+		if(["mentions", "retweets_of_me", "retweeted_to_me", "retweeted_by_me"].indexOf(what.data.timeline) != -1)
+			apiName = what.data.timeline;
+		else
+			apiName = what.data.timeline+"_timeline";
+		if(!what.param) what.param = {};
+		//what.param["include_entities"] = true;
+		return Tw.get("statuses/"+apiName, what.param, callback);
+	}else if(what.type == "tw.status"){
+		if(!Tw){
+			console.error("No OAuth!");
+			return false;
+		}
+		return Tw.get("statuses/show/"+what.data, null, callback);
+	}else if(what.type == "tw.update"){
+		if(!Tw){
+			console.error("No OAuth!");
+			return false;
+		}
+		data = {};
+		if(what.data.status) data.status = what.data.status;
+		if(what.data.irp) data.in_reply_to_status_id = what.data.irp;
+		if(what.data.lat) data.lat = what.data.lat;
+		if(what.data.long) data.long = what.data.long;
+		//data["include_entities"] = true;
+		return Tw.post("statuses/update", data, callback);
+	}else if(what.type == "tw.retweet"){
+		if(!Tw){
+			console.error("No OAuth!");
+			return false;
+		}
+		data = {};
+		if(what.data.lat) data.lat = what.data.lat;
+		if(what.data.long) data.lat = what.data.long;
+		//data["include_entities"] = true;
+		return Tw.post("statuses/retweet/"+what.data.id, data, callback);
+	}else if(what.type == "tw.shorten"){ // unused
+		$.get("http://twitter.com/share?url="+encodeURIComponent(what.url), {}, (function(how,old,d){
+			url = d.match(/<textarea [^>]+> (http:\/\/t\.co\/[a-zA-Z0-9]+)<\/textarea>/)[1];
+			how({url: url, old: old});
+		}).bind(this, callback, what.url));
+	}else if(what.type == "shorten"){
+		$.getJSON("https://api-ssl.bit.ly/v3/shorten?login=manatsawin&apiKey=R_fe0508be39d31d16b36c8ae014d4bfc4&format=json&domain=j.mp&longUrl="+encodeURIComponent(what.url), {}, (function(how,d){
+			how({url: d.data.url, old: d.data.long_url});
+		}).bind(this, callback));
+	}else if(what.type == "ytplaying" && TwPlusAPI == "chrome"){
+		// find yt window
+		var out = [];
+		chrome.windows.getAll({populate: true}, function(wnds){
+			wnds.forEach(function(wnd){
+				wnd.tabs.forEach(function(tab){
+					if(tab.url.match(/^http:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab.title != ""){
+						url = tab.url.match(/^http:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
+						url = "http://youtu.be/"+url;
+						out.push({title: tab.title.split("YouTube - ")[1], url: url});
+					}
+				});
+			});
+			how(out);
+		});
+	}else if(what.type == "friends"){
+		return Tw.get("statuses/friends", what.data, callback);
+	}else if(TwPlusAPI == "chrome"){
+		id=new Date().getTime();
+		_twcom_callbacks[id] = callback || function(){};
+		$("#twiticom").html(encodeURIComponent(JSON.stringify({id: id, data: what}))).mousedown();
 	}else{
 		throw("Cannot find parser for command");
 	}
@@ -1098,19 +1171,17 @@ function chirpTimeout(){
 	}, 90000);
 }
 function chirpConnect(){
-	twcom({type: "consumer"}, function(x){
-		msg = {
-			method: "GET",
-			action: "https://userstream.twitter.com/2/user.json?with=users"
-		}
-		reqBody = OAuth.formEncode(msg.parameters);
-		OAuth.completeRequest(msg, x);
-		authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
-		CHD.connected = false;
-		CHD.xhr.open("GET", msg.action, true);
-		CHD.xhr.setRequestHeader("Authorization", authHeader);
-		CHD.xhr.send(reqBody);
-	});
+	msg = {
+		method: "GET",
+		action: "https://userstream.twitter.com/2/user.json?with=users"
+	}
+	reqBody = OAuth.formEncode(msg.parameters);
+	OAuth.completeRequest(msg, Tw.consumer);
+	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
+	CHD.connected = false;
+	CHD.xhr.open("GET", msg.action, true);
+	CHD.xhr.setRequestHeader("Authorization", authHeader);
+	CHD.xhr.send(reqBody);
 	CHD.xhr.onreadystatechange = function(){
 		if(CHD.xhr.readyState == 2){
 			if(CHD.xhr.responseText.indexOf("UNAUTHORIZED") != -1){
@@ -1284,13 +1355,27 @@ $(function(){
 		})
 	});
 	if(!localStorage.blockKey) localStorage.blockKey = "";
+	if(!localStorage.config)
+		localStorage.config = '{"nogeo": true}';
+	SET = JSON.parse(localStorage.config);
 	$("#dropMe").hide();
-	if(TwPlusAPI == "chrome"){
+	if(TwPlusAPI == "chrome" && false){
 		$("#twiticom").get(0).onmouseup = function(){
 			d=JSON.parse(decodeURIComponent($(this).html()));
 			_twcom_callbacks[d.id](d.data);
 			delete _twcom_callbacks[d.id];
 		};
+	}
+	if(localStorage.twitterKey){
+		keys = JSON.parse(localStorage.twitterKey);
+		Tw = new Twitter(keys[0], keys[1]);
+	}else Tw=undefined;
+	if(!Tw){
+		if(TwPlusAPI == "chrome"){
+			window.location = chrome.extension.getURL("twplus/options.html");
+		}else{
+			alert("Not logged in -- backend fault!");
+		}
 	}
 	twcom({type: "tw.info"}, function(d){
 		accInfo = {twitter: {username: d.screen_name, data: d}};
@@ -1523,7 +1608,7 @@ $(function(){
 		}, 1);
 	});
 	// HTML5 drop file upload
-	if((new XMLHttpRequest).send && chrome && false){
+	if((new XMLHttpRequest).send && false){
 		function notifyDrag(e){
 			$("#dropMe").show();
 			e.stopPropagation();
@@ -1569,9 +1654,6 @@ $(function(){
 			});
 		}, false);
 	}
-	if(!localStorage.config)
-		localStorage.config = '{"nogeo": true}';
-	SET = JSON.parse(localStorage.config);
 	
 	if(!$.query.get("timeline")){
 		DB.transaction(function(x){
@@ -1631,6 +1713,5 @@ $(function(){
 <footer>
 	<textarea id="input" rows="2" autofocus placeholder="Type your notice here. Press ctrl+s to shorten URLs. Type and press ctrl+f to search up, ctrl+g to search down."></textarea>
 </footer>
-<script src="twplus/bridge.js" type="text/javascript"></script>
 </body>
 </html>

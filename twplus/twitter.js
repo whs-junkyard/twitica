@@ -1,3 +1,8 @@
+/**
+ * This file is licensed under the GNU General Public License version 3
+ * Exception is granted to Twitica Desktop by the same author
+ */
+
 /* prototypejs/src/lang/function.js */
 function prototype_update(array, args) {
 	var arrayLength = array.length, length = args.length;
