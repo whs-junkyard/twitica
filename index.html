@@ -6,6 +6,8 @@
 	<script src="http://www.google.com/jsapi?key=ABQIAAAAYoOKCkfFW91dTeqo-JkXzRTpHAHc_yxl7U4eDo_cu3O8NsI-KhQ1raXuDokWlvdC-9sMoR6o6oEjzQ" type="text/javascript"></script>
 	<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;sensor=true&amp;key=ABQIAAAAYoOKCkfFW91dTeqo-JkXzRTpHAHc_yxl7U4eDo_cu3O8NsI-KhQ1raXuDokWlvdC-9sMoR6o6oEjzQ" type="text/javascript"></script>
 	<script src="jquery.js" type="text/javascript"></script>
+	<script src="twplus/sha1.js"></script>
+	<script src="twplus/oauth.js"></script>
 	<script src="shadowbox/shadowbox.js" type="text/javascript"></script>
 	<script src="mousewheel.js" type="text/javascript"></script>
 	<script src="query.js" type="text/javascript"></script>
@@ -229,7 +231,7 @@ var curPos=0, lastId=0, accInfo = {}, dentsRendered=[], dentsElement=[];
 var geo = navigator.geolocation;
 var geoPos = [null,null];
 var last_twitter_id = 0, flickering = false, bgTimeout;
-var SET, twFirstLoadDone, dataDiv = {}, DB, TwPlus=undefined, failtweet;
+var SET, twFirstLoadDone, dataDiv = {}, DB, TwPlusAPI="chrome", failtweet;
 google.load("earth", "1");
 
 /**
@@ -303,10 +305,13 @@ var _twcom_callbacks = {};
  * @arg Function callback function
  */
 function twcom(msg, callback){
-	if(!TwPlus) throw("Twitica Desktop+ not detected, did you set TwPlus?");
 	id=new Date().getTime();
 	_twcom_callbacks[id] = callback || function(){};
-	$("#twiticom").html(encodeURIComponent(JSON.stringify({id: id, data: msg}))).mousedown();
+	if(TwPlusAPI == "chrome"){
+		$("#twiticom").html(encodeURIComponent(JSON.stringify({id: id, data: msg}))).mousedown();
+	}else{
+		throw("Cannot find parser for command");
+	}
 }
 /**
  * Send browser notification to Chrome
@@ -440,7 +445,7 @@ function refocus(){
 		document.title = prefix+" "+title;
 	}else
 		document.title = title
-	if(TwPlus)
+	if(TwPlusAPI == "mac")
 		twcom({"type": "refocus", "count": count, "mention": mentionCnt});
 	$("#twcounter").html(count+"/"+lastId);
 	
@@ -525,10 +530,7 @@ function sendTweet(msg){
 		"irp": in_reply_to,
 		"lat": geoPos[0], "long": geoPos[1]
 	};
-	if(TwPlus)
-		twcom({type: "tw.update", data:reqData}, cb);
-	else
-		$.post("auth.php?act=update&xss=" + accInfo.xss, reqData, cb);
+	twcom({type: "tw.update", data:reqData}, cb);
 	
 	in_reply_to = null;
 }
@@ -660,10 +662,8 @@ function processMsg(d, kind){
 							});
 							handleGotStatus(origt);
 						};
-						if(TwPlus && kind == "twitter")
+						if(kind == "twitter")
 							twcom({type: "tw.status", data: d.in_reply_to_status_id_str}, cb);
-						else
-							$.getJSON("auth.php?act=twstatus&id="+d.in_reply_to_status_id_str, cb);
 					}else{
 						handleGotStatus(JSON.parse(rs.item(0).data));
 					}
@@ -948,10 +948,7 @@ function repeatCur(){
 				notify("<b>ERROR:</b> "+d.error);
 		};
 		meta = {"id": getCurrent().data("data").id_str, "lat": geoPos[0], "long": geoPos[1]};
-		if(TwPlus)
-			twcom({type: "tw.retweet", data: meta}, cb);
-		else
-			$.post("auth.php?act=twretweet&xss=" + accInfo.xss, meta, cb)
+		twcom({type: "tw.retweet", data: meta}, cb);
 	}
 }
 
@@ -980,10 +977,6 @@ var twloadtimeout;
  * Fetch twitter
  */
 function twitterLoad(periodical, callback){
-	if(TwPlus === undefined){
-		console.log("Waiting for TwPlus...");
-		return setTimeout(twitterLoad, 5, periodical, callback);
-	}
 	if(periodical == undefined) periodical = true;
 	twFirstLoadDone = true;
 	clearTimeout(twloadtimeout);
@@ -1009,10 +1002,7 @@ function twitterLoad(periodical, callback){
 	params = {user: $.query.get("user"), since_id: last_twitter_id || 0}
 	if(!params.user) delete params.user;
 	if(!params.since_id) delete params.since_id;
-	if(TwPlus)
-		twcom({type: "tw.refresh", data: {timeline: $.query.get("timeline")}, param: params}, loadCb);
-	else
-		$.getJSON("auth.php?act=twitter&xss="+accInfo.xss+"&timeline="+$.query.get("timeline")+"&user="+$.query.get("user")+sendSince, loadCb);
+	twcom({type: "tw.refresh", data: {timeline: $.query.get("timeline")}, param: params}, loadCb);
 	if(!periodical && callback) callback();
 	if(periodical)
 		twloadtimeout = setTimeout(twitterLoad, 60000*3);
@@ -1058,64 +1048,36 @@ function chirpParse(d){
 }
 
 /**
- * TwPlus User stream bridge
- * Basically it is a duplicate of chirp.js
- *
- * @since 5 September 2010
+ * Get latest message from the datastream
+ * Moved from twplus_chirp
+ * 
+ * @since 30 March 3011
+ * @see twplus_chirp
+ * @see chirpConnect
  */
 var CHDlastInd = 0;
-function twplus_chirp(){
-	if($.query.get("nostream")) return twitterLoad();
-	twcom({type: "tw.chirp"});
-	$("#twiticom-chirpD").get(0).onmouseup = function(){
-		h=$(this).html();
-		if(h=="loginerror"){
-			notify("[+] Cannot login to user stream!");
-		}else if(h == "connected"){
-			notify("[+] Connected to user stream");
-			CHDlastInd = 0;
-			chirpConnected = new Date().getTime();
-			$("#refreshbut").hide();
-			chirpClearFallback = setTimeout(function(){chirpFallback = 2.5}, 5000);
-		}else if(h == "lostcon"){
-			if(chirpConnected === false || new Date().getTime() - chirpConnected < 5000){
-				notify("[+] Couldn't connect to Twitter stream.");
-				clearTimeout(chirpClearFallback);
-				$("#refreshbut").show();
-				twitterLoad();
-			}else if(chirpFallback >= 80){
-				notify("[+] Couldn't connect to Twitter stream. Will now refresh");
-				$("#refreshbut").show();
-				twitterLoad();
-			}else{
-				notify("[+] Twitter stream Error! Will retry soon.");
-				chirpFallback *= 2;
-				setTimeout(function(){twcom({type: "tw.chirp"});}, chirpFallback*1000);
-			}
-		}
-	};
-	$("#twiticom-chirp").get(0).onmouseup = function(){
-		res = decodeURIComponent($(this).html());
-		// clone of parser algorithm 2 in chirp.js
-		d=res.replace(/^\s+|\s+$/, '').substring(CHDlastInd).split(/([\r\n]+|$)/);
-		var buffer = "";
-		d.forEach(function(me){ // for each un-parsed line
-			buffer += me;
-			if((me.replace(/^\s+|\s+$/, '') == "" || me[me.length-1] == "}") && buffer.replace(/^\s+|\s+$/, '') != ""){
-				try{
-					chirpParse(JSON.parse(buffer)); // then parse it
-				}catch(e){
-					if(me.replace(/^\s+|\s+$/, '') == ""){
-						console.error(e);
-						console.log(buffer, me);
-					}
-					return;
+function chirpLastMessage(data){
+	res = decodeURIComponent(data);
+	// clone of parser algorithm 2 in chirp.js
+	d=res.replace(/^\s+|\s+$/, '').substring(CHDlastInd).split(/([\r\n]+|$)/);
+	var buffer = "";
+	d.forEach(function(me){ // for each un-parsed line
+		buffer += me;
+		// (this line trimmed is empty OR last character is }) AND the buffer is not blank
+		if((me.replace(/^\s+|\s+$/, '') == "" || me[me.length-1] == "}") && buffer.replace(/^\s+|\s+$/, '') != ""){
+			try{
+				chirpParse(JSON.parse(buffer)); // then parse it
+			}catch(e){
+				if(me.replace(/^\s+|\s+$/, '') == ""){
+					console.error(e);
+					console.log(buffer, me);
 				}
-				CHDlastInd += buffer.length;
-				buffer = "";
+				return;
 			}
-		});
-	};
+			CHDlastInd += buffer.length;
+			buffer = "";
+		}
+	});
 }
 
 /**
@@ -1124,8 +1086,96 @@ function twplus_chirp(){
  * @since 5 June 2010
  */
 var chirpFallback = 2.5, chirpConnected = false, chirpClearFallback;
+var CHD = {};
+CHD.xhr = new XMLHttpRequest();
+var CHDtimeout;
+function chirpTimeout(){
+	CHDtimeout = setTimeout(function(){
+		notify("[+] Twitter stream Error! Will retry soon.");
+		chirpFallback *= 2;
+		setTimeout(chirpConnect, chirpFallback*1000);
+		CHD.connected = false;
+	}, 90000);
+}
+function chirpConnect(){
+	twcom({type: "consumer"}, function(x){
+		msg = {
+			method: "GET",
+			action: "https://userstream.twitter.com/2/user.json?with=users"
+		}
+		reqBody = OAuth.formEncode(msg.parameters);
+		OAuth.completeRequest(msg, x);
+		authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
+		CHD.connected = false;
+		CHD.xhr.open("GET", msg.action, true);
+		CHD.xhr.setRequestHeader("Authorization", authHeader);
+		CHD.xhr.send(reqBody);
+	});
+	CHD.xhr.onreadystatechange = function(){
+		if(CHD.xhr.readyState == 2){
+			if(CHD.xhr.responseText.indexOf("UNAUTHORIZED") != -1){
+				notify("[+] Cannot login to user stream!");
+				$("#refreshbut").show();
+				twitterLoad();
+				CHD.xhr.abort();
+			}
+		}else if(CHD.xhr.readyState == 3){
+			if(!CHD.connected){
+				CHD.connected=true;
+				notify("[+] Connected to user stream");
+				CHDlastInd = 0;
+				chirpConnected = new Date().getTime();
+				$("#refreshbut").hide();
+				chirpClearFallback = setTimeout(function(){chirpFallback = 2.5}, 5000);
+			}
+			clearTimeout(CHDtimeout); chirpTimeout();
+			chirpLastMessage(CHD.xhr.responseText);
+		}else if(CHD.xhr.readyState == 4){
+			notify("[+] Twitter stream Error! Will retry soon.");
+			chirpFallback *= 2;
+			setTimeout(chirpConnect, chirpFallback*1000);
+			CHD.connected = false;
+		}
+	};
+}
 function chirp(){
-	return twplus_chirp();
+	if($.query.get("nostream")) return twitterLoad();
+	
+	/*CHDworker.onmessage = function(e){
+		e=JSON.parse(e.data);
+		if(e['type'] && e.type=="message"){
+			h = e.message;
+			if(h=="loginerror"){
+				notify("[+] Cannot login to user stream!");
+			}else if(h == "connected"){
+				notify("[+] Connected to user stream");
+				CHDlastInd = 0;
+				chirpConnected = new Date().getTime();
+				$("#refreshbut").hide();
+				chirpClearFallback = setTimeout(function(){chirpFallback = 2.5}, 5000);
+			}else if(h == "lostcon"){
+				if(chirpConnected === false || new Date().getTime() - chirpConnected < 5000){
+					notify("[+] Couldn't connect to Twitter stream.");
+					clearTimeout(chirpClearFallback);
+					$("#refreshbut").show();
+					twitterLoad();
+				}else if(chirpFallback >= 80){
+					notify("[+] Couldn't connect to Twitter stream. Will now refresh");
+					$("#refreshbut").show();
+					twitterLoad();
+				}else{
+					notify("[+] Twitter stream Error! Will retry soon.");
+					chirpFallback *= 2;
+					setTimeout(chirpConnect, chirpFallback*1000);
+				}
+			}else if(e.type == "console.log") console.log(e.data[0], e.data[1]);
+			else if(e.type == "console.error") console.error(e.data[0], e.data[1]);
+			else if(e.type == "console.warn") console.warn(e.data[0], e.data[1]);
+		}else{
+			
+		}
+	};*/
+	chirpConnect();
 }
 
 /**
@@ -1193,10 +1243,7 @@ function geoPoller(){
 						return false;
 					});
 				};
-				if(TwPlus)
-					twcom({type: "geo", data: {latlng: lat+","+lon}}, mapCallback);
-				else
-					$.getJSON("geocode.json?latlng="+lat+","+lon+"&sensor=true", mapCallback);
+				twcom({type: "geo", data: {latlng: lat+","+lon}}, mapCallback);
 			}
 		}
 	});
@@ -1208,7 +1255,6 @@ function geoPoller(){
  */
 function loadFollowing(){
 	return;
-	if(!TwPlus) return;
 	if(new Date().getTime() - localStorage.lastFollowLoad < 3600*24) return;
 	twcom({type: "friends", "data": {cursor: -1}}, function(out){
 		DB.transaction(function(x){
@@ -1239,13 +1285,13 @@ $(function(){
 	});
 	if(!localStorage.blockKey) localStorage.blockKey = "";
 	$("#dropMe").hide();
-	// detect TwiticaDesktop+
-	TwPlus = true;
-	$("#twiticom").get(0).onmouseup = function(){
-		d=JSON.parse(decodeURIComponent($(this).html()));
-		_twcom_callbacks[d.id](d.data);
-		delete _twcom_callbacks[d.id];
-	};
+	if(TwPlusAPI == "chrome"){
+		$("#twiticom").get(0).onmouseup = function(){
+			d=JSON.parse(decodeURIComponent($(this).html()));
+			_twcom_callbacks[d.id](d.data);
+			delete _twcom_callbacks[d.id];
+		};
+	}
 	twcom({type: "tw.info"}, function(d){
 		accInfo = {twitter: {username: d.screen_name, data: d}};
 		// update the page title to the beta status if detected
@@ -1342,27 +1388,13 @@ $(function(){
 				urls = $("footer textarea").val().match(/(https?:\/\/|www\.)(\S*\w+)+/g);
 				urls = $.unique(urls);
 				notify("Shortening URLs");
-				if(TwPlus){
-					urls.forEach(function(me){
+				urls.forEach(function(me){
 						twcom({type: "shorten", url: me}, function(res){
-							ov = $("footer textarea").val();
-							ov = ov.replace(res.old, res.url);
-							$("footer textarea").val(ov);
-						});
+						ov = $("footer textarea").val();
+						ov = ov.replace(res.old, res.url);
+						$("footer textarea").val(ov);
 					});
-				}else{
-					$.get("auth.php", {act: "shorten", "url": JSON.stringify(urls)}, function(o){
-						o = o.split("\n")
-						$.each(o, function(k,d){
-							d = d.split("\t")
-							if(d.length != 2) return true;
-							ov = $("footer textarea").val();
-							ov = ov.replace(d[0], d[1]);
-							$("footer textarea").val(ov);
-						});
-						notify("URLs shortened");
-					});
-				}
+				});
 				e.preventDefault();
 			}else if(e.which == 75){
 				bk = prompt("Keywords to block? Prefix with src: to block a client, user: to block a user. Regex OK. Split with ||", localStorage.blockKey);
@@ -1372,12 +1404,15 @@ $(function(){
 			}
 		}
 		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration"].sort();
+		if(TwPlusAPI != "chrome"){
+			cmds.remove(cmds.indexOf("ytplaying"));
+		}
 		if(e.which == 13 && $("footer textarea").val().length > 0){
 			txt = $("footer textarea").val();
 			if($.trim(txt) == "/ytplaying"){
 				e.preventDefault();
-				if(!TwPlus){
-					notify("You need to install Twitica Desktop+ to use this command.");
+				if(TwPlusAPI != "chrome"){
+					notify("Sorry, this command is only available on Chrome version");
 				}else{
 					twcom({type: "ytplaying"}, function(resp){
 						if(resp.length  > 1) notify("This command only works with only one YouTube tab.");
@@ -1416,7 +1451,7 @@ $(function(){
 				e.preventDefault();
 				$("footer textarea").val("")
 				return;
-			}else if($.trim(txt).indexOf("/") == 0 && $.trim(txt).indexOf("//") != 0 && TwPlus){
+			}else if($.trim(txt).indexOf("/") == 0 && $.trim(txt).indexOf("//") != 0){
 				notify("You mistyped a command? You only can send // in tweet.");
 				e.preventDefault();
 				return;

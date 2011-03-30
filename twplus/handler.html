@@ -7,35 +7,6 @@
 <script src="twitter.js"></script>
 <script>
 var Tw;
-var CHD = {};
-CHD.cb = function(){}
-CHD.xhr = new XMLHttpRequest();
-var CHDtimeout;
-
-function makeTimeout(){
-	CHDtimeout = setTimeout(function(){
-		CHD.cb.postMessage({type: "error", data: "lostcon"});
-		CHD.connected = false;
-	}, 90000);
-}
-CHD.xhr.onreadystatechange = function(){
-	if(CHD.xhr.readyState == 2){
-		if(CHD.xhr.responseText.indexOf("UNAUTHORIZED") != -1){
-			CHD.cb.postMessage({type: "error", data: "loginerror"});
-			CHD.xhr.abort();
-		}
-	}else if(CHD.xhr.readyState == 3){
-		if(!CHD.connected){
-			CHD.connected=true;
-			CHD.cb.postMessage({type: "error", data: "connected"});
-		}
-		clearTimeout(CHDtimeout); makeTimeout();
-		CHD.cb.postMessage({data: CHD.xhr.responseText});
-	}else if(CHD.xhr.readyState == 4){
-		CHD.cb.postMessage({type: "error", data: "lostcon"});
-		CHD.connected = false;
-	}
-}
 
 function handle(what, who, how){
 	// what = data
@@ -119,31 +90,12 @@ function handle(what, who, how){
 		});
 	}else if(what.type == "friends"){
 		return Tw.get("statuses/friends", what.data, how);
-	}
-}
-function chirp(port){
-	if(port !== undefined)
-		CHD.cb=port;
-	msg = {
-		method: "GET",
-		action: "https://userstream.twitter.com/2/user.json?with=users"
-	}
-	reqBody = OAuth.formEncode(msg.parameters);
-	OAuth.completeRequest(msg, Tw.consumer);
-	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
-	CHD.connected = false;
-	CHD.xhr.open("GET", msg.action, true);
-	CHD.xhr.setRequestHeader("Authorization", authHeader);
-	CHD.xhr.send(reqBody);
-	if(port !== undefined){
-		port.onDisconnect.addListener(function(){
-			CHD.xhr.abort();
-		});
+	}else if(what.type == "consumer"){
+		return how(Tw.consumer);
 	}
 }
 
 chrome.extension.onRequest.addListener(handle);
-chrome.extension.onConnect.addListener(chirp);
 </script>
 </head>
 </html>
