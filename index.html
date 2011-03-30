@@ -1062,14 +1062,13 @@ function twitterLoad(periodical, callback){
 			notify("Twitter error!");
 			return;
 		}
+		if(d.length == 0) return;
 		last_twitter_id = d[0].id_str;
 		d = d.reverse();
 		$.each(d, function(k,v){addTweet(v);});
-		if(d.length > 0){
-			refocus();
-			if(curPos != lastId && SET.autoscroll){
-				setTimeout(scroll, 1000, lastId - curPos);
-			}
+		refocus();
+		if(curPos != lastId && SET.autoscroll){
+			setTimeout(scroll, 1000, lastId - curPos);
 		}
 	};
 	params = {user: $.query.get("user"), since_id: last_twitter_id || 0}
@@ -1129,8 +1128,7 @@ function chirpParse(d){
  * @see chirpConnect
  */
 var CHDlastInd = 0;
-function chirpLastMessage(data){
-	res = decodeURIComponent(data);
+function chirpLastMessage(res){
 	// clone of parser algorithm 2 in chirp.js
 	d=res.replace(/^\s+|\s+$/, '').substring(CHDlastInd).split(/([\r\n]+|$)/);
 	var buffer = "";
@@ -1168,6 +1166,7 @@ function chirpTimeout(){
 		chirpFallback *= 2;
 		setTimeout(chirpConnect, chirpFallback*1000);
 		CHD.connected = false;
+		CHD.xhr.abort();
 	}, 90000);
 }
 function chirpConnect(){
@@ -1211,41 +1210,6 @@ function chirpConnect(){
 }
 function chirp(){
 	if($.query.get("nostream")) return twitterLoad();
-	
-	/*CHDworker.onmessage = function(e){
-		e=JSON.parse(e.data);
-		if(e['type'] && e.type=="message"){
-			h = e.message;
-			if(h=="loginerror"){
-				notify("[+] Cannot login to user stream!");
-			}else if(h == "connected"){
-				notify("[+] Connected to user stream");
-				CHDlastInd = 0;
-				chirpConnected = new Date().getTime();
-				$("#refreshbut").hide();
-				chirpClearFallback = setTimeout(function(){chirpFallback = 2.5}, 5000);
-			}else if(h == "lostcon"){
-				if(chirpConnected === false || new Date().getTime() - chirpConnected < 5000){
-					notify("[+] Couldn't connect to Twitter stream.");
-					clearTimeout(chirpClearFallback);
-					$("#refreshbut").show();
-					twitterLoad();
-				}else if(chirpFallback >= 80){
-					notify("[+] Couldn't connect to Twitter stream. Will now refresh");
-					$("#refreshbut").show();
-					twitterLoad();
-				}else{
-					notify("[+] Twitter stream Error! Will retry soon.");
-					chirpFallback *= 2;
-					setTimeout(chirpConnect, chirpFallback*1000);
-				}
-			}else if(e.type == "console.log") console.log(e.data[0], e.data[1]);
-			else if(e.type == "console.error") console.error(e.data[0], e.data[1]);
-			else if(e.type == "console.warn") console.warn(e.data[0], e.data[1]);
-		}else{
-			
-		}
-	};*/
 	chirpConnect();
 }
 
