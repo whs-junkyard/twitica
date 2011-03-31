@@ -794,7 +794,7 @@ function processMsg(d, kind){
 				else if(player.indexOf(/\.flv$/) != -1) player = "flv";
 				else player = "iframe";
 				Shadowbox.open({
-					content: $(this).attr("title"),
+					content: this.href,
 					player: player,
 					title: "Attachment",
 					"width": $(window).width() * 6/7, "height": $(window).height() * 3/4,
