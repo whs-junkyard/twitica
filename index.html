@@ -238,6 +238,7 @@ google.load("earth", "1");
 /**
  * Remove array's member
  * @see http://ejohn.org/blog/javascript-array-remove/
+ * @returns {Array}
  */
 Array.prototype.remove = function(from, to) {
 	var rest = this.slice((to || from) + 1 || this.length);
@@ -249,6 +250,7 @@ Array.prototype.remove = function(from, to) {
  * Make array members unique
  * Note that $.unique is not supported for non-elements arrays.
  * @see http://www.martienus.com/code/javascript-remove-duplicates-from-array.html
+ * @returns {Array}
  */
 Array.prototype.unique = function () {
 	var r = new Array();
@@ -264,19 +266,9 @@ Array.prototype.unique = function () {
 }
 
 /**
- * Redirect to unsupported page
- * @since 5 June 2010
- */
-function unsupported(cause){
-	alert("Unsupported browser version. Please upgrade your browser.");
-	return false;
-	window.location = "unsupported.html?"+(cause?cause:"");
-}
-
-/**
  * Show a notification at top right
- * @arg String Message
- * @return jQuery
+ * @param {String} Message
+ * @returns {jQuery} The notification node
  */
 function notify(str){
 	e = $("<div class='notify'></div>").html(str).css("left", -1 * $(window).width()).appendTo("#notify");
@@ -301,9 +293,9 @@ function notify(str){
 // the injector and twcom() handles ID automatically.
 var _twcom_callbacks = {};
 /**
- * Communicate with TwiticaDesktop+, Chrome optional extension
- * @arg Any The message
- * @arg Function callback function
+ * Backend-specific code
+ * @param The message
+ * @param {Function} callback function
  */
 function twcom(what, callback){
 	if(what.type == "geo"){
@@ -389,9 +381,9 @@ function twcom(what, callback){
 /**
  * Send browser notification to Chrome
  *
- * @arg String Title
- * @arg String Message
- * @arg String Icon URL (optional)
+ * @param {String} Title
+ * @param {String} Message
+ * @param {String} Icon URL (optional)
  */
 function comnotify(title, msg, icon){
 	if(SET.notifyDuration == undefined) SET.notifyDuration = 3;
@@ -406,8 +398,8 @@ function comnotify(title, msg, icon){
 }
 /**
  * Replace HTML escape string with their real representitive.
- * @arg String Input
- * @return String
+ * @param {String} Input
+ * @returns {String} Unescaped string
  */
 function ungt(s){
 	return s.replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&quot;/g, "'").replace(/&quote;/g, '"').replace(/&amp;/g, "&");
@@ -418,7 +410,7 @@ function ungt(s){
  * Updated since 10 September 2010, as selecting the element with jQuery does not supply $.expando correctly
  * thus not supplying $.data and breaks replyCur. 
  *
- * @return jQuery
+ * @returns {jQuery} User-selected tweet
  */
 function getCurrent(){
 	return dentsElement[curPos];
@@ -426,10 +418,11 @@ function getCurrent(){
 /**
  * Is that tweet blocked from displaying?
  * Now updated with anti-spam mechanism.
- * @arg String Poster
- * @arg String Source (via)
- * @arg String Content
- * @return Boolean
+ * @param {String} Message owner
+ * @param {String} Source name (via attribute)
+ * @param {String} Message body
+ * @param {Boolean} Is current user following the message owner?
+ * @return {Boolean} True if blocked
  */
 function isBlocked(user, src, txt, following){
 	keys = localStorage.blockKey.split("||");
@@ -464,7 +457,7 @@ function isBlocked(user, src, txt, following){
 		if(src == "web") current += 1;
 		if(txt.indexOf("@"+accInfo['twitter'].username) == 0) current += 2;
 		else if(txt.indexOf("@"+accInfo['twitter'].username) != -1) current += 1;
-		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch", "Trip"].forEach(function(x){
+		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch", "Trip", "bit.ly"].forEach(function(x){
 			if(txt.match(new RegExp(x, "i"))) current += 1;
 		});
 		if(current > threshold){
@@ -476,6 +469,7 @@ function isBlocked(user, src, txt, following){
 }
 /**
  * Scroll to the selected notice
+ * @see getCurrent
  */
 function refocus(){
 	$("#body article.selected").removeClass("selected").blur();
@@ -555,7 +549,7 @@ function refocus(){
 /**
  * Scroll n tweet down
  * N could be positive (down) or negative (up)
- * @arg int Amount to scroll, can be positive and negative
+ * @param {int} Amount to scroll, can be positive and negative
  */
 function scroll(a){
 	curPos += a
@@ -571,8 +565,8 @@ function scroll(a){
 }
 var in_reply_to;
 /**
- * Sent message
- * @arg String Message to send
+ * Send message
+ * @param {String} Message to send
  */
 function sendTweet(msg){
 	notify("Tweeting...");
@@ -611,8 +605,8 @@ function sendTweet(msg){
  * Draw and process a message
  * @private
  *
- * @arg Object The message, as returned from Twitter API
- * @arg String Origin (twitter)
+ * @param {Object} The message, as returned from Twitter API
+ * @param {String} Origin ("twitter" only)
  */
 function processMsg(d, kind){
 	// Handle RT nicely
@@ -756,9 +750,12 @@ function processMsg(d, kind){
 		$(".info", dent).append("<span> </span>")
 	});
 
+	/**
+	 * Check whether the link should be handled on Twitica or not
+	 * @param {Event}
+	 * @returns {Boolean} True if the event can be processed on Twitica
+	 */
 	function linkCheck(e){
-		console.log(e.ctrlKey);
-		console.log(e.metaKey);
 		if(e.ctrlKey || e.metaKey) return false;
 		// check for Android, and then do not allow cross-tweet link click
 		// how this is Twitica "Desktop" when it support Android?
@@ -812,25 +809,20 @@ function processMsg(d, kind){
 			$(this).bind("click", {dent:dent}, linkCheck);
 		}
 	});
-	/*dent.css({
-		backgroundImage: "url("+d.user.profile_background_image_url+")",
-		backgroundRepeat: d.user.profile_background_tile ? "repeat" : "no-repeat", 
-
-		textShadow: "#"+d.user.profile_text_color+" 0px 0px 8px"
-	});*/
 	$("a", dent).attr("target", "_blank");
 	return dent;
 }
 
 /**
  * Add message to timeline
- * Please use addTweet instead
+ * Use addTweet instead or write your own backend
+ * @private
  *
- * @arg Object The message, as returned from Twitter API
- * @arg Boolean If true will scroll down if autoscroll setting is true.
- * @arg Boolean If true will slide the tweet in, otherwise just inject it
- * @arg Boolean If true will call comnotify if the user have been mentioned
- * @arg String Origin (twitter)
+ * @param {Object} The message, as returned from Twitter API
+ * @param {Boolean} If true will scroll down if autoscroll setting is true.
+ * @param {Boolean} If true will slide the tweet in, otherwise just inject it
+ * @param {Boolean} If true will call comnotify if the user have been mentioned
+ * @param {String} Origin ("twitter" only)
  */
 function addMsg(d, doScroll, eff, notifyMention, kind){
 	if(dentsRendered.indexOf(d.id_str) != -1) return;
@@ -938,6 +930,11 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 }
 /**
  * Add Twitter message
+ * 
+ * @param {Object} The message, as returned from Twitter API
+ * @param {Boolean} If true will scroll down if autoscroll setting is true.
+ * @param {Boolean} If true will slide the tweet in, otherwise just inject it
+ * @param {Boolean} If true will call comnotify if the user have been mentioned
  * @see addMsg
  */
 function addTweet(d, doScroll, eff, notifyMention){
@@ -945,6 +942,8 @@ function addTweet(d, doScroll, eff, notifyMention){
 }
 /**
  * Set the text cursor to position
+ * @param {Element} The textbox
+ * @param {Integer} Position to move to
  * @todo Implement this as jQuery plugin
  */
 function setCaretTo(node, pos) {
@@ -1026,6 +1025,10 @@ function repeatCur(){
 }
 
 // Shhh..
+/**
+ * Konami code handler
+ * @private
+ */
 $.fn.konami = function(callback, code) {
 	if(code == undefined) code = "38,38,40,40,37,39,37,39,66,65";
 	
@@ -1047,7 +1050,9 @@ $.fn.konami = function(callback, code) {
 var twloadtimeout;
 
 /**
- * Fetch twitter
+ * Load twitter timeline
+ * @param {Boolean} Automatically refresh or not
+ * @param {Function} Callback function after request is sent. Only applicable when periodical is false
  */
 function twitterLoad(periodical, callback){
 	if(periodical == undefined) periodical = true;
@@ -1083,7 +1088,9 @@ function twitterLoad(periodical, callback){
 var CHDfriends;
 /**
  * Parse events
+ * @private
  *
+ * @param {Object} An object as returned from the stream
  * @since 23 April 2010
  */
 function chirpParse(d){
@@ -1122,8 +1129,10 @@ function chirpParse(d){
 /**
  * Get latest message from the datastream
  * Moved from twplus_chirp
+ * @private
  * 
  * @since 30 March 3011
+ * @param {String} Entire received data
  * @see twplus_chirp
  * @see chirpConnect
  */
@@ -1151,15 +1160,16 @@ function chirpLastMessage(res){
 	});
 }
 
-/**
- * Web Worker bridge, the worker source is at chirp.js
- *
- * @since 5 June 2010
- */
 var chirpFallback = 2.5, chirpConnected = false, chirpClearFallback;
 var CHD = {};
 CHD.xhr = new XMLHttpRequest();
 var CHDtimeout;
+/**
+ * Create connection timeout for chirp connection
+ * Moved here from background page since 1.8
+ * @private
+ * @since version 1.8
+ */
 function chirpTimeout(){
 	CHDtimeout = setTimeout(function(){
 		notify("[+] Twitter stream Error! Will retry soon.");
@@ -1169,6 +1179,13 @@ function chirpTimeout(){
 		CHD.xhr.abort();
 	}, 90000);
 }
+/**
+ * Create connection to user stream and bind event
+ * Moved here from background page since 1.8
+ * @private
+ * @since version 1.8
+ * @see chirp
+ */
 function chirpConnect(){
 	msg = {
 		method: "GET",
@@ -1208,6 +1225,11 @@ function chirpConnect(){
 		}
 	};
 }
+/**
+ * Connect to chirp
+ *
+ * @since 5 June 2010
+ */
 function chirp(){
 	if($.query.get("nostream")) return twitterLoad();
 	chirpConnect();
@@ -1215,7 +1237,7 @@ function chirp(){
 
 /**
  * Search
- * @arg Boolean True to search up, false to search down
+ * @param {Boolean} True to search up, false to search down
  */
 function search(dir){
 	// up; dir=true
@@ -1244,6 +1266,9 @@ function search(dir){
 	notify("Sorry, no match "+dirN);
 }
 var geoPollerID=undefined;
+/**
+ * Update geolocation
+ */
 function geoPoller(){
 	geoPollerID = geo.watchPosition(function(pos){
 		lat = Math.round(pos.coords.latitude*Math.pow(10,3))/Math.pow(10,3)
