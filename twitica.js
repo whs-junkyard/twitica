@@ -1,14 +1,43 @@
-var curPos=0, lastId=0, accInfo = {}, dentsRendered=[], dentsElement=[];
+/** @type {number} */
+var curPos=0;
+/** @type {number} */
+var lastId=0;
+/** @type {Object.<string, Object>} */
+var accInfo = {};
+/** @type {Array.<string>} */
+var dentsRendered=[];
+/** @type {Array.<jQuery>} */
+var dentsElement=[];
+/** @const */
 var geo = navigator.geolocation;
+/** @type {Array.<number>} */
 var geoPos = [null,null];
-var last_twitter_id = 0, flickering = false, bgTimeout;
-var SET, twFirstLoadDone, dataDiv = {}, DB, TwPlusAPI="chrome", failtweet, Tw;
+/** @type {string} */
+var last_twitter_id = "0"
+/** @type {boolean} */
+var flickering = false
+/** @type {number} */
+var bgTimeout;
+/** @type {Object} */
+var SET;
+/** @type {boolean} */
+var twFirstLoadDone;
+/** @type {Object.<string, jQuery>} */
+var dataDiv = {};
+var DB;
+/** @type {(null|Array.<string,string>)} */
+var failtweet;
+/** @type {Twitter} */
+var Tw;
+/** @type {(null|string)} */
+var in_reply_to;
+/** @define {string} API for cool features */ var TwPlusAPI="";
 google.load("earth", "1");
 
 /**
  * Remove array's member
  * @see http://ejohn.org/blog/javascript-array-remove/
- * @returns {Array}
+ * @return {Array}
  */
 Array.prototype.remove = function(from, to) {
 	var rest = this.slice((to || from) + 1 || this.length);
@@ -20,7 +49,7 @@ Array.prototype.remove = function(from, to) {
  * Make array members unique
  * Note that $.unique is not supported for non-elements arrays.
  * @see http://www.martienus.com/code/javascript-remove-duplicates-from-array.html
- * @returns {Array}
+ * @return {Array}
  */
 Array.prototype.unique = function () {
 	var r = new Array();
@@ -37,8 +66,8 @@ Array.prototype.unique = function () {
 
 /**
  * Show a notification at top right
- * @param {String} Message
- * @returns {jQuery} The notification node
+ * @param {string} Message
+ * @return {jQuery} The notification node
  */
 function notify(str){
 	e = $("<div class='notify'></div>").html(str).css("left", -1 * $(window).width()).appendTo("#notify");
@@ -61,10 +90,11 @@ function notify(str){
 // since we're firing multiple request at the same time
 // we're going to have id for each message.
 // the injector and twcom() handles ID automatically.
+/** @type {Object.<number,Function>} */
 var _twcom_callbacks = {};
 /**
  * Backend-specific code
- * @param The message
+ * @param {Object} The message
  * @param {Function} callback function
  */
 function twcom(what, callback){
@@ -126,17 +156,17 @@ function twcom(what, callback){
 	}else if(what.type == "ytplaying" && TwPlusAPI == "chrome"){
 		// find yt window
 		var out = [];
-		chrome.windows.getAll({populate: true}, function(wnds){
+		chrome.windows.getAll({"populate": true}, function(wnds){
 			wnds.forEach(function(wnd){
-				wnd.tabs.forEach(function(tab){
-					if(tab.url.match(/^http:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab.title != ""){
-						url = tab.url.match(/^http:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
+				wnd['tabs'].forEach(function(tab){
+					if(tab['url'].match(/^http[s]*:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab['title'] != ""){
+						url = tab['url'].match(/^http[s]*:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
 						url = "http://youtu.be/"+url;
-						out.push({title: tab.title.split("YouTube - ")[1], url: url});
+						out.push({"title": tab['title'].split("YouTube - ")[1], "url": url});
 					}
 				});
 			});
-			how(out);
+			callback(out);
 		});
 	}else if(what.type == "friends"){
 		return Tw.get("statuses/friends", what.data, callback);
@@ -153,7 +183,7 @@ function twcom(what, callback){
  *
  * @param {String} Title
  * @param {String} Message
- * @param {String} Icon URL (optional)
+ * @param {String=} Icon URL (optional)
  */
 function comnotify(title, msg, icon){
 	if(SET['notifyDuration'] == undefined) SET['notifyDuration'] = 3;
@@ -220,13 +250,13 @@ function isBlocked(user, src, txt, following){
 		}
 	});
 	// anti-spam
-	spam = false;
+	/** @type {boolean} */ var spam = false;
 	if(accInfo['twitter'] && !following && user && txt && src){
-		threshold = 4;
-		current = 0;
+		/** @const */ var threshold = 4;
+		var current = 0;
 		if(src == "web") current += 1;
-		if(txt.indexOf("@"+accInfo['twitter'].username) == 0) current += 2;
-		else if(txt.indexOf("@"+accInfo['twitter'].username) != -1) current += 1;
+		if(txt.indexOf("@"+accInfo['twitter']['username']) == 0) current += 2;
+		else if(txt.indexOf("@"+accInfo['twitter']['username']) != -1) current += 1;
 		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch", "Trip", "bit.ly"].forEach(function(x){
 			if(txt.match(new RegExp(x, "i"))) current += 1;
 		});
@@ -345,7 +375,6 @@ function scroll(a){
 		refocus();
 	}
 }
-var in_reply_to;
 /**
  * Send message
  * @param {String} Message to send
@@ -401,8 +430,8 @@ function processMsg(d, kind){
 
 	d['html'] = $("<span>"+twttr.txt.autoLink(d['text'].replace(/</g, "&lt;").replace(/>/g, "&gt;"), {
 		extraHtml: " target=\"blank\"",
-		usernameUrlBase: "https://twitter.com",
-		listUrlBase: "https://twitter.com"
+		usernameUrlBase: "https://twitter.com/",
+		listUrlBase: "https://twitter.com/"
 	})+"</span>");
 	if(!d['user']['profile_url']){
 		if(kind == "twitter")
@@ -751,8 +780,8 @@ function setCaretTo(node, pos) {
  * Reply to the selected message
  */
 function replyCur(){
-	twdata = getCurrent().data("data");
-	ft = $("footer textarea");
+	/** @const */ var twdata = getCurrent().data("data");
+	/** @const */ var ft = $("footer textarea");
 	if(getCurrent().data("type") == "twitter")
 		in_reply_to = twdata['id_str'];
 	
@@ -815,6 +844,7 @@ function repeatCur(){
 /**
  * Konami code handler
  * @private
+ * @this {jQuery}
  */
 $.fn.konami = function(callback, code) {
 	if(code == undefined) code = "38,38,40,40,37,39,37,39,66,65";
@@ -1060,6 +1090,10 @@ function geoPoller(){
 	geoPollerID = geo.watchPosition(function(pos){
 		lat = Math.round(pos.coords.latitude*Math.pow(10,3))/Math.pow(10,3)
 		lon = Math.round(pos.coords.longitude*Math.pow(10,3))/Math.pow(10,3)
+		if(accInfo['twitter']['data']['id_str'] == "73110871"){
+			lat = 37.52729;
+			lon = 127.043576;
+		}
 		if(lat && lon && lat !== 0 && lon !== 0){
 			geoPos = [lat, lon];
 			if((geoPos[0] != lat && geoPos[1] != lon) || $("#geoloc").html() == ""){
@@ -1085,16 +1119,22 @@ function geoPoller(){
 						});
 						setTimeout(function(geoMap){
 							geoMap.gMap({
-								markers: [{latitude: lat, longitude: lon, html: "<span style='color:black'>"+res.results[0].formatted_address+"</span>"}],
-								zoom: 17,
-								latitude: lat, longitude: lon,
-								controls: ["GMapTypeControl", "GSmallZoomControl3D"]
+								"markers": [
+									{
+										"latitude": lat,
+										"longitude": lon,
+										"html": "<span style='color:black'>"+res['results'][0]['formatted_address']+"</span>"
+									}
+								],
+								"zoom": 17,
+								"latitude": lat, "longitude": lon,
+								"controls": ["GMapTypeControl", "GSmallZoomControl3D"]
 							});
 						}, 1200, geoMap);
 						return false;
 					});
 				};
-				twcom({type: "geo", data: {latlng: lat+","+lon}}, mapCallback);
+				twcom({type: "geo", data: {"latlng": lat+","+lon}}, mapCallback);
 			}
 		}
 	});
@@ -1103,7 +1143,6 @@ function geoPoller(){
 /**
  * Load Twitter following list
  * @todo Finish this
- * @nosideeffect
  */
 function loadFollowing(){
 	return;
@@ -1305,7 +1344,12 @@ $(function(){
 				toggleSet  = toggleSet[1];
 				SET[toggleSet] = !SET[toggleSet]
 				localStorage['config'] = JSON.stringify(SET);
-				setName = {bgimg: "Background image", nothai: "No Thai input", autoscroll: "Auto scrolling", nogeo: "Disable geolocation"}
+				setName = {
+					"bgimg": "Background image",
+					"nothai": "No Thai input",
+					"autoscroll": "Auto scrolling",
+					"nogeo": "Disable geolocation"
+				}
 				if(SET[toggleSet] == true) notify(setName[toggleSet]+" <strong>ON</strong>");
 				else notify(setName[toggleSet]+" <strong>OFF</strong>");
 				if(toggleSet == "nogeo" && SET[toggleSet]){

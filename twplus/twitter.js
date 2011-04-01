@@ -1,6 +1,6 @@
 /**
- * This file is licensed under the GNU General Public License version 3
- * Exception is granted to Twitica Desktop by the same author
+ * @license The Twitter library is licensed under the GNU Lesser General Public License version 3
+ * Portions from the Prototype JavaScript library
  */
 
 /* prototypejs/src/lang/function.js */
@@ -32,8 +32,8 @@ function isString(object) {
 if(!window['OAuth']) alert("BUG: OAuth haven't been loaded yet!");
 /**
  * Twitter connector
- * @param string Optionally OAuth access key
- * @param string Optionally OAuth access key secret
+ * @param {string=} Optionally OAuth access key
+ * @param {string=} Optionally OAuth access key secret
  * @constructor
  */
 function Twitter(accessKey, accessSecret){
@@ -41,6 +41,9 @@ function Twitter(accessKey, accessSecret){
 		localStorage['consumerKey'] = "B02C38CBnBOTwN4l4tGIQ";
 		localStorage['consumerSecret'] = "RtCXZbUTaD8isPRxl26725zMPRyCaLf4CsF4WjNbPaI";
 	}
+	/**
+	 * @type {object}
+	 */
 	this.consumer = {
 		"consumerKey": localStorage['consumerKey'],
 		"consumerSecret": localStorage['consumerSecret'],
@@ -50,6 +53,9 @@ function Twitter(accessKey, accessSecret){
 			"accessTokenURL": "https://api.twitter.com/oauth/access_token"
 		}
 	};
+	/**
+	 * @type {object}
+	 */
 	this.user = {};
 	if(accessKey){
 		this.consumer.token = accessKey;
@@ -59,6 +65,9 @@ function Twitter(accessKey, accessSecret){
 /**
  * @private
  * Call the Twitter API with OAuth
+ * @param {object} OAuth message
+ * @param {function} callback function
+ * @return {jQuery.jqXHR}
  */
 Twitter.prototype._makeRequest = function(msg, callback){
 	if(callback == undefined) callback = function(){}
@@ -92,9 +101,9 @@ Twitter.prototype._makeRequest = function(msg, callback){
 };
 /**
  * Perform xAuth authentication
- * @param {String} username
- * @param {String} password
- * @param {Function} callback Callback function, will be called with true when success.
+ * @param {string} Username
+ * @param {string} Password
+ * @param {function} Callback function, will be called with true when success.
  */
 Twitter.prototype.xauth = function(username, password, callback){
 	if(callback == undefined) callback = function(){}
@@ -106,7 +115,7 @@ Twitter.prototype.xauth = function(username, password, callback){
 			["x_auth_password", password],
 			["x_auth_mode", "client_auth"]
 		]
-	}, (function(res){
+	}, (/** @this {Twitter} */ function(res){
 		if(res.oauth_token){
 			this.consumer.token = res.oauth_token;
 			this.consumer.tokenSecret = res.oauth_token_secret;
@@ -116,6 +125,7 @@ Twitter.prototype.xauth = function(username, password, callback){
 };
 /**
  * Perform OAuth authorization step 1
+ * @param {function} Callback function
  */
 Twitter.prototype.oauth = function(callback){
 	if(callback == undefined) callback = function(){}
@@ -131,6 +141,9 @@ Twitter.prototype.oauth = function(callback){
 }
 /**
  * Perform OAuth authentication step 2
+ * @param {(number|string)} PIN
+ * @param {Object.<string, string>} Data as returned from oauth()
+ * @param {function} Callback function
  */
 Twitter.prototype.oauth2 = function(pin, data, callback){
 	if(callback == undefined) callback = function(){}
@@ -142,7 +155,7 @@ Twitter.prototype.oauth2 = function(pin, data, callback){
 		parameters: [
 			["oauth_verifier", parseInt(pin)]
 		]
-	}, (function(res){
+	}, (/** @this {Twitter} */ function(res){
 		if(res.oauth_token){
 			this.consumer.token = res.oauth_token;
 			this.consumer.tokenSecret = res.oauth_token_secret;
@@ -153,9 +166,10 @@ Twitter.prototype.oauth2 = function(pin, data, callback){
 /**
  * @private
  * Request a JSON and return it
- * @param string Type of request: GET/POST (use respectively functions instead)
- * @param string Endpoint. Eg. statuses/home_timeline
- * @param function Optionally callback function. Will be called with the response as first argument.
+ * @param {string} Type of request: GET/POST (use respectively functions instead)
+ * @param {string} Endpoint. Eg. statuses/home_timeline
+ * @param {Object} GET/POST parameters
+ * @param {function} Optionally callback function. Will be called with the response as first argument.
  */
 Twitter.prototype._doRequest = function(type, url, params, callback){
 	if(url.indexOf("http://") != 0) url = "https://api.twitter.com/1/" + url + ".json";
@@ -165,7 +179,7 @@ Twitter.prototype._doRequest = function(type, url, params, callback){
 		method: type,
 		action: url,
 		parameters: params
-	}, (function(res){
+	}, (/** @this {Twitter} */ function(res){
 		if(url == "https://api.twitter.com/1/account/verify_credentials.json")
 			this.user = res;
 		callback(res);
@@ -185,6 +199,8 @@ Twitter.prototype.post = function(){
 };
 /**
  * Sign a request for OAuth Echo
+ * @param {string} URL target
+ * @return {string} Signed header
  */
 Twitter.prototype.sign = function(url){
 	if(url === undefined) url = "https://api.twitter.com/1/account/verify_credentials.json";
