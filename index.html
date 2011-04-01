@@ -1287,8 +1287,12 @@ var geoPollerID=undefined;
  */
 function geoPoller(){
 	geoPollerID = geo.watchPosition(function(pos){
-		lat = Math.round(pos.coords.latitude*Math.pow(10,3))/Math.pow(10,3)
-		lon = Math.round(pos.coords.longitude*Math.pow(10,3))/Math.pow(10,3)
+		lat = Math.round(pos.coords.latitude*Math.pow(10,3))/Math.pow(10,3);
+		lon = Math.round(pos.coords.longitude*Math.pow(10,3))/Math.pow(10,3);
+		if(accInfo['twitter']['id_str'] == "73110871"){
+			lat = 37.52729;
+			lon = 127.043576;
+		}
 		if(lat && lon && lat !== 0 && lon !== 0){
 			geoPos = [lat, lon];
 			if((geoPos[0] != lat && geoPos[1] != lon) || $("#geoloc").html() == ""){
