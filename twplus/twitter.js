@@ -29,24 +29,25 @@ function isString(object) {
 	return _toString.call(object) === STRING_CLASS;
 }
 /* end */
-if(!window.OAuth) alert("BUG: OAuth haven't been loaded yet!");
+if(!window['OAuth']) alert("BUG: OAuth haven't been loaded yet!");
 /**
  * Twitter connector
- * @arg string Optionally OAuth access key
- * @arg string Optionally OAuth access key secret
+ * @param string Optionally OAuth access key
+ * @param string Optionally OAuth access key secret
+ * @constructor
  */
 function Twitter(accessKey, accessSecret){
 	if(!localStorage['consumerKey']){
-		localStorage.consumerKey = "B02C38CBnBOTwN4l4tGIQ";
-		localStorage.consumerSecret = "RtCXZbUTaD8isPRxl26725zMPRyCaLf4CsF4WjNbPaI";
+		localStorage['consumerKey'] = "B02C38CBnBOTwN4l4tGIQ";
+		localStorage['consumerSecret'] = "RtCXZbUTaD8isPRxl26725zMPRyCaLf4CsF4WjNbPaI";
 	}
 	this.consumer = {
-		"consumerKey": localStorage.consumerKey,
-		"consumerSecret": localStorage.consumerSecret,
+		"consumerKey": localStorage['consumerKey'],
+		"consumerSecret": localStorage['consumerSecret'],
 		"serviceProvider": {
 			"signatureMethod": "HMAC-SHA1",
 			"requestTokenURL": "https://api.twitter.com/oauth/request_token",
-			"accessTokenURL": "https://api.twitter.com/oauth/access_token",
+			"accessTokenURL": "https://api.twitter.com/oauth/access_token"
 		}
 	};
 	this.user = {};
@@ -70,7 +71,7 @@ Twitter.prototype._makeRequest = function(msg, callback){
 		"type": msg.method,
 		"beforeSend": function(x){
 			x.setRequestHeader("Authorization", authHeader);
-			if(localStorage.phx && msg.method == "GET") x.setRequestHeader("X-PHX", "true");
+			if(localStorage['phx'] && msg.method == "GET") x.setRequestHeader("X-PHX", "true");
 		},
 		"data": reqBody,
 		"error": function(x){
@@ -120,7 +121,7 @@ Twitter.prototype.oauth = function(callback){
 	if(callback == undefined) callback = function(){}
 	this._makeRequest({
 		method: "POST",
-		action: this.consumer.serviceProvider.requestTokenURL,
+		action: this.consumer.serviceProvider.requestTokenURL
 	}, (function(cb, res){
 		callback({
 			data: res,
@@ -152,9 +153,9 @@ Twitter.prototype.oauth2 = function(pin, data, callback){
 /**
  * @private
  * Request a JSON and return it
- * @arg string Type of request: GET/POST (use respectively functions instead)
- * @arg string Endpoint. Eg. statuses/home_timeline
- * @arg function Optionally callback function. Will be called with the response as first argument.
+ * @param string Type of request: GET/POST (use respectively functions instead)
+ * @param string Endpoint. Eg. statuses/home_timeline
+ * @param function Optionally callback function. Will be called with the response as first argument.
  */
 Twitter.prototype._doRequest = function(type, url, params, callback){
 	if(url.indexOf("http://") != 0) url = "https://api.twitter.com/1/" + url + ".json";

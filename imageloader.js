@@ -3,6 +3,7 @@
  * TwitPic Image Loader
  * Example: ldr = new TwitPicLoader("http://twitpic.com/asdf123");
  * @param {String} URL of the TwitPic page. Eg. http://twitpic.com/asdf123
+ * @constructor
  */
 TwitPicLoader = function(url){
 	this.url = url.replace(/^http:/, "https:");
@@ -22,6 +23,7 @@ TwitPicLoader.prototype.getURL = function(cb){
  * Plixi Image Loader
  * Example: ldr = new PlixiLoader("https://plixi.com/p/asdf");
  * @param {String} URL of the Plixi page. Eg. https://plixi.com/p/asdf
+ * @constructor
  */
 PlixiLoader = function(url){
 	this.url = url.replace(/^https:/, "http:");
@@ -32,13 +34,12 @@ PlixiLoader = function(url){
  */
 PlixiLoader.prototype.getURL = function(cb){
 	$.getJSON("https://api.plixi.com/api/tpapi.svc/jsonp/metadatafromurl?url="+this.url+"&callback=?", function(d){
-		console.log(d);
-		cb(d.BigImageUrl, d.Message);
+		cb(d['BigImageUrl'], d['Message']);
 	});
 };
 
 /* Main class */
-window.ImageLoader = {
+window['ImageLoader'] = {
 	/**
 	 * Get the image provider class from specified URL
 	 * @todo Make it extensible
@@ -60,7 +61,7 @@ window.ImageLoader = {
 		 * @param {Frame}
 		 */
 		"frame": function(url, wnd){
-			provider = ImageLoader.getProvider(url);
+			provider = ImageLoader['getProvider'](url);
 			provider.getURL(function(url, desc){
 				wnd.document.write("<style>body{text-align:center;margin:0;padding:0;}img{border:none;}</style>");
 				wnd.document.write("<p style='text-align: left;'></p>");
@@ -74,17 +75,17 @@ window.ImageLoader = {
 		 * @param {Frame}
 		 */
 		"shadowbox": function(url){
-			provider = ImageLoader.getProvider(url);
+			provider = ImageLoader['getProvider'](url);
 			provider.getURL(function(url, desc){
 				Shadowbox.open({
 					content: url,
 					player: "img",
-					title: desc,
+					title: desc
 					//"width": $(window).width() * 6/7, "height": $(window).height() * 3/4,
 				});
 			});
 		}
-	},
+	}
 };
 })();
 
