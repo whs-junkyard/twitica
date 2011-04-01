@@ -1,0 +1,12 @@
+application: twiticadesktop
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+- url: /
+  static_files: twitica/index.html
+  upload: twitica/(.*)
+- url: /
+  static_dir: twitica
+
