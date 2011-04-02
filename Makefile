@@ -84,3 +84,5 @@ clean: buildclean
 	rm ../twitica-full.zip || true
 .PHONY: all build debug build-chrome build-mac \
 	appengine appengine-prep build-appengine appengine-install buildclean clean remove-twplus-file
+# sometimes it ask for username
+.NOTPARALLEL: appengine-install

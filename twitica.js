@@ -309,15 +309,15 @@ function refocus(){
 			$("#body").addClass("withbg");
 		}
 		try{
-			if(thisOne.data("data").user.profile_background_image_url != $("#bodyimg").data("img")){
+			if(thisOne.data("data")['user']['profile_background_image_url'] != $("#bodyimg").data("img")){
 				$("#bodyimg").css("opacity", 0);
 				dd=$("<div id='bodyimg' class='bodyimgs'></div>").css({
 					"top": $("header").height(), "left": 0, "position": "fixed", "z-index": -100, "width": "100%", "height": "100%",
-					"background-image": "url("+thisOne.data("data").user.profile_background_image_url+")",
-					"background-color": "#"+thisOne.data("data").user.profile_background_color,
-					"background-repeat": thisOne.data("data").user.profile_background_tile ? "repeat" : "no-repeat", 
+					"background-image": "url("+thisOne.data("data")['user']['profile_background_image_url']+")",
+					"background-color": "#"+thisOne.data("data")['user']['profile_background_color'],
+					"background-repeat": thisOne.data("data")['user']['profile_background_tile'] ? "repeat" : "no-repeat", 
 					"opacity": 0
-				}).data("img", thisOne.data("data").user.profile_background_image_url).appendTo("body");
+				}).data("img", thisOne.data("data")['user']['profile_background_image_url']).appendTo("body");
 				setTimeout(function(dd){dd.css("opacity", 1);}, 1, dd); // have to wait for css to be applied
 				setTimeout(function(t){
 					$(".bodyimgs").not(t).remove();
