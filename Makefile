@@ -43,6 +43,9 @@ $(TMPDIR): twplus/options.compiled.js
 	rm $(DIST)/twitica.compiled.js.* || true
 
 remove-twplus-file:
+	if [ "$(DIST)" = "" ]; then
+		exit 1
+	fi
 	rm -rf $(DIST)/twplus/{getPIN.js,handler.js,options.*,twitter.js,handler.html}
 
 appengine: TARGET = appengine

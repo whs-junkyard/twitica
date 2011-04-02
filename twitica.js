@@ -983,7 +983,7 @@ function chirpLastMessage(res){
 var chirpFallback = 2.5, chirpConnected = false, chirpClearFallback;
 var CHD = {};
 CHD.xhr = new XMLHttpRequest();
-var CHDtimeout;
+var CHDtimeout, CHDreset, CHDresetting;
 /**
  * Create connection timeout for chirp connection
  * Moved here from background page since 1.8
@@ -1029,19 +1029,29 @@ function chirpConnect(){
 		}else if(CHD.xhr.readyState == 3){
 			if(!CHD.connected){
 				CHD.connected=true;
+				CHDresetting=false;
+				clearTimeout(chirpClearFallback);
 				notify("[+] Connected to user stream");
 				CHDlastInd = 0;
 				chirpConnected = new Date().getTime();
 				$("#refreshbut").hide();
+				clearTimeout(CHDreset);
+				CHDreset = setTimeout(function(){
+					CHDresetting = true;
+					CHD.xhr.abort();
+					notify("Resetting user stream...");
+					chirpConnect();
+				}, 30*60*1000);
 				chirpClearFallback = setTimeout(function(){chirpFallback = 2.5}, 5000);
 			}
 			clearTimeout(CHDtimeout); chirpTimeout();
 			chirpLastMessage(CHD.xhr.responseText);
 		}else if(CHD.xhr.readyState == 4){
-			notify("[+] Twitter stream Error! Will retry soon.");
+			CHD.connected = false;
+			if(CHDresetting) return;
+			notify("[+] Twitter stream Error! Will retry in "+chirpFallback+"s");
 			chirpFallback *= 2;
 			setTimeout(chirpConnect, chirpFallback*1000);
-			CHD.connected = false;
 		}
 	};
 }
@@ -1271,7 +1281,7 @@ $(function(){
 		$("#tips").html(tip);
 	}
 	updateTOTD();
-	setInterval(updateTOTD, 15*60*60);
+	setInterval(updateTOTD, 15*60*1000);
 	
 	/**
 	 * Event bindings
@@ -1293,6 +1303,7 @@ $(function(){
 		return false;
 	})
 	$(window).keydown(function(e){
+		console.log(e);
 		if(e.target.type == "text" || e.target.type == "password") return;
 		kmul = konami ? -1 : 1;
 		if($("footer textarea").val().length == 0 || e.which == 33 || e.which == 34){

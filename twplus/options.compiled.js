@@ -26,7 +26,7 @@ function g(b, a) {
     localStorage.consumerKey = "B02C38CBnBOTwN4l4tGIQ", localStorage.consumerSecret = "RtCXZbUTaD8isPRxl26725zMPRyCaLf4CsF4WjNbPaI"
   }
   this.a = {consumerKey:localStorage.consumerKey, consumerSecret:localStorage.consumerSecret, serviceProvider:{signatureMethod:"HMAC-SHA1", requestTokenURL:"https://api.twitter.com/oauth/request_token", accessTokenURL:"https://api.twitter.com/oauth/access_token"}};
-  this.d = {};
+  this.b = {};
   if(b) {
     this.a.token = b, this.a.tokenSecret = a
   }
@@ -52,7 +52,7 @@ function h(b, a, c) {
 function i(b, a) {
   a == void 0 && (a = function() {
   });
-  h(b, {method:"POST", action:b.a.b.g}, function(b, d) {
+  h(b, {method:"POST", action:b.a.serviceProvider.requestTokenURL}, function(b, d) {
     a({data:d, url:"https://api.twitter.com/oauth/authenticate?oauth_token=" + d.oauth_token + "&oauth_callback=oob"})
   }.bind(b, a))
 }
@@ -60,25 +60,25 @@ function j(b, a, c, d) {
   d == void 0 && (d = function() {
   });
   b.a.token = c.oauth_token;
-  b.a.tokenSecret = c.c;
-  h(b, {method:"POST", action:b.a.b.f, parameters:[["oauth_verifier", parseInt(a)]]}, function(a) {
-    a.oauth_token ? (this.a.token = a.oauth_token, this.a.tokenSecret = a.c, d(!0)) : d(!1)
+  b.a.tokenSecret = c.d;
+  h(b, {method:"POST", action:b.a.serviceProvider.accessTokenURL, parameters:[["oauth_verifier", parseInt(a)]]}, function(a) {
+    a.oauth_token ? (this.a.token = a.oauth_token, this.a.tokenSecret = a.oauth_token_secret, d(!0)) : d(!1)
   }.bind(b))
 }
-g.prototype.e = function(b, a, c, d) {
+g.prototype.c = function(b, a, c, d) {
   a.indexOf("http://") != 0 && (a = "https://api.twitter.com/1/" + a + ".json");
   d == void 0 && (d = function() {
   });
   $.isFunction(c) && (d = c, c = null);
   h(this, {method:b, action:a, parameters:c}, function(b) {
     if(a == "https://api.twitter.com/1/account/verify_credentials.json") {
-      this.d = b
+      this.b = b
     }
     d(b)
   }.bind(this))
 };
 g.prototype.get = function() {
-  return this.e.apply(this, e(["get"], arguments))
+  return this.c.apply(this, e(["get"], arguments))
 };
 // Input 1
 var k = new g, l;
@@ -104,7 +104,7 @@ $(function() {
           k.get("account/verify_credentials", null, function(a) {
             localStorage.twitterUser = a.screen_name;
             localStorage.twitterData = JSON.stringify(a);
-            localStorage.twitterKey = JSON.stringify([k.consumer.token, k.consumer.tokenSecret]);
+            localStorage.twitterKey = JSON.stringify([k.a.token, k.a.tokenSecret]);
             $("#login-status").html("Currently logged in as <b>" + localStorage.twitterUser + "</b>");
             m()
           })
