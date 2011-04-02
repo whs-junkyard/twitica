@@ -208,26 +208,42 @@ article td{
 article .noticebadge{
 	padding-left: 5px; padding-right: 5px;
 	padding-top: 1px; padding-bottom: 1px;
-	-webkit-border-radius: 10px;
 	background: #666;
 	color: #eea;
 	text-shadow: black 0px 1px 0px;
 	border: #333 solid 1px;
 	-webkit-transition: background 250ms linear;
+	-webkit-border-radius: 5px;
 }
-/* drop handler */
-#dropMe{
+.floatingbox{
 	position: fixed;
 	top: 15%;
 	left: 15%;
 	width: 70%;
 	-webkit-box-sizing: border-box;
-	padding: 30px;
-	text-align: center;
-	-webkit-border-radius: 25px;
+	-webkit-border-radius: 5px;
+	background: rgba(0,0,0,0.8);
+	color: white;
+	padding: 10px;
+	font-family: "Myriad Pro", "Segoe UI", Helvetica;
+	border: #555 solid 1px;
+	-webkit-box-shadow: black 0px 2px 15px;
+}
+#help table{
+	width: 90%;
+	margin: auto;
+	margin-top: 10px;
+}
+#help h1{
+	margin:0;
+	font-size: 14pt;
+}
+#dropMe{
 	background: rgba(0,0,0,0.65);
 	font-size: 16pt;
-	color: white;
+	text-align: center;
+	padding: 30px;
+	-webkit-border-radius: 25px;
 }
 	</style>
 	<script type="text/javascript" src="twitica.compiled.js"></script>
@@ -237,10 +253,9 @@ article .noticebadge{
 </div>
 <header>
 	<menu id="menubutt" type="toolbar">
-		<li><a href="#" onclick="twitterLoad(); return false;" id="refreshbut"><b>R</b><span>efresh</span></a></li>
-		<li><a href="#" onclick="repeatCur(); return false;"><span>R</span><b>e</b><span>peat</span></a></li>
-		<li><a href="#" onclick="replyCur(); return false;"><span>Repl</span><b>y</b></a></li>
-		<!--<li>▼</li>--> <!-- TODO: Wait for HTML5 nested menu -->
+		<li><a href="#" id="refreshbut"><b>R</b><span>efresh</span></a></li>
+		<li><a href="#" id="retweetbut"><span>R</span><b>e</b><span>tweet</span></a></li>
+		<li><a href="#" id="replybut"><span>Repl</span><b>y</b></a></li>
 	</menu>
 	<div class="right">
 		<menu>
@@ -252,13 +267,36 @@ article .noticebadge{
 	<br style="clear: both;">
 	<!--<div class="info"></div>-->
 </header>
-<div id="dropMe">
+<div id="dropMe" class="floatingbox">
 	Drop to upload!
+</div>
+<div id="help" class="floatingbox">
+	<h1>Shortcuts</h1>
+	<table>
+		<tr><th>Ctrl+H</th><td>Help</td></tr>
+		<tr><th>Ctrl+R</th><td>Refresh<sup>[1]</sup></td></tr>
+		<tr><th>Ctrl+E</th><td>Retweet</td></tr>
+		<tr><th>Ctrl+Y</th><td>Reply</td></tr>
+		<tr><th>Ctrl+S</th><td>Shorten URLs</td></tr>
+		<tr><th>Ctrl+F</th><td>Search up using text in box</td></tr>
+		<tr><th>Ctrl+G</th><td>Search down using text in box</td></tr>
+		<tr><th>Ctrl+L</th><td>Block keyword(s)</td></tr>
+		<tr><th>Ctrl+Z</th><td>Retry failed tweet</td></tr>
+		<tr><th>Ctrl+M</th><td>Mention</td></tr>
+		<tr><th>Enter</th><td>Tweet/Open first link in tweet</td></tr>
+		<tr><th>Tab</th><td>Autocomplete command (hold to rotate)</td></tr>
+	</table>
+	<h1>Commands</h1>
+	<p>Type / and press Tab to rotate between commands. Press Enter to run.</p>
+	<h1>Tips</h1>
+	<p id="tips" style="padding: 10px;"></p>
+	<p>(updated every 15 minutes)</p>
+	<small><sup>[1]</sup> only when streaming not available</small><br />
 </div>
 <div id="body">
 </div>
 <footer>
-	<textarea id="input" rows="2" autofocus placeholder="Type your notice here. Press ctrl+s to shorten URLs. Type and press ctrl+f to search up, ctrl+g to search down."></textarea>
+	<textarea id="input" rows="2" placeholder="Press Ctrl+H for help."></textarea>
 </footer>
 </body>
 </html>

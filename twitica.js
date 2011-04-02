@@ -31,6 +31,8 @@ var failtweet;
 var Tw;
 /** @type {(null|string)} */
 var in_reply_to;
+/** @type {number} */
+var refocus_bounce;
 /** @define {string} API for cool features */ var TwPlusAPI="";
 google.load("earth", "1");
 
@@ -362,17 +364,18 @@ function refocus(){
  * Scroll n tweet down
  * N could be positive (down) or negative (up)
  * @param {int} Amount to scroll, can be positive and negative
+ * @param {boolean=} Do refocus() (default=true)
  */
-function scroll(a){
+function scroll(a, ref){
 	curPos += a
 	if(curPos < 0){
 		curPos = 0;
-		speed = refocus();
+		if(ref !== false) refocus();
 	}else if(curPos > lastId-1){
 		curPos = lastId-1;
-		speed = refocus();
+		if(ref !== false) refocus();
 	}else{
-		refocus();
+		if(ref !== false) refocus();
 	}
 }
 /**
@@ -1178,7 +1181,7 @@ $(function(){
 	if(!localStorage['config'])
 		localStorage['config'] = '{"nogeo": true}';
 	SET = JSON.parse(localStorage['config']);
-	$("#dropMe").hide();
+	$("#dropMe,#help").hide();
 	if(TwPlusAPI == "chrome" && false){
 		$("#twiticom").get(0).onmouseup = function(){
 			d=JSON.parse(decodeURIComponent($(this).html()));
@@ -1231,9 +1234,64 @@ $(function(){
 		}
 	});
 	
+	if(navigator.userAgent.match("Macintosh")){
+		$("#help table th").html(function(i, x){
+			return x.replace("Ctrl+", "⌘");
+		});
+		$("footer textarea").attr("placeholder", "Press ⌘H for help.");
+	}
+	/**
+	 * Shuffle array
+	 * @see http://stackoverflow.com/questions/962802/is-it-correct-to-use-javascript-array-sort-method-for-shuffling
+	 * @param {Array}
+	 * @return {Array}
+	 */
+	function shuffle(array) {
+	    var tmp, current, top = array.length;
+	    if(top) while(--top) {
+	        current = Math.floor(Math.random() * (top + 1));
+	        tmp = array[current];
+	        array[current] = array[top];
+	        array[top] = tmp;
+	    }
+	    return array;
+	}
+	var tipList = shuffle([
+		"This application have an easter egg!",
+		"/bgimg might slow down your computer",
+		"Read changelogs at #TwiticaDesktop",
+		"Click a user's avatar to open their timeline",
+		"Ctrl/Cmd+Click on an image link to open in tab",
+		"Feature request and bug report at @manatsawin",
+		"Press on <img src='marker.png' /> to view map"
+	]);
+	function updateTOTD(){
+		tip = tipList.shift();
+		tipList.push(tip);
+		$("#tips").html(tip);
+	}
+	updateTOTD();
+	setInterval(updateTOTD, 15*60*60);
+	
 	/**
 	 * Event bindings
 	 */
+	$("#refreshbut").click(function(){
+		twitterLoad();
+		return false;
+	});
+	$("#refreshbut").click(function(){
+		twitterLoad();
+		return false;
+	});
+	$("#retweetbut").click(function(){
+		repeatCur();
+		return false;
+	});
+	$("#replybut").click(function(){
+		replyCur();
+		return false;
+	})
 	$(window).keydown(function(e){
 		if(e.target.type == "text" || e.target.type == "password") return;
 		kmul = konami ? -1 : 1;
@@ -1269,7 +1327,9 @@ $(function(){
 			}
 		}
 		cmdKey = e.ctrlKey;
-		if(navigator.userAgent.match("Macintosh")) cmdKey = e.metaKey;
+		if(navigator.userAgent.match("Macintosh")){
+			cmdKey = e.metaKey;
+		}
 		if(cmdKey){ 
 			if(e.which == 89){
 				replyCur();
@@ -1289,6 +1349,9 @@ $(function(){
 				e.preventDefault();
 			}else if(e.which == 77){
 				window.open("?timeline=replies", 'repliestimeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+				e.preventDefault();
+			}else if(e.which == 72){
+				$("#help").fadeToggle();
 				e.preventDefault();
 			}else if(e.which == 83){
 				urls = $("footer textarea").val().match(/(https?:\/\/|www\.)(\S*\w+)+/g);
@@ -1422,8 +1485,12 @@ $(function(){
 		refocus();
 	});
 	$(window).mousewheel(function(e,d){
-		scroll(Math.floor(d)*(konami?1:-1));
-		refocus()
+		amt = Math.floor(d);
+		if(amt<0) amt = Math.min(-1, amt);
+		else amt = Math.max(1, amt);
+		scroll(amt*(konami?1:-1), false);
+		clearTimeout(refocus_bounce);
+		refocus_bounce = setTimeout(refocus, 5);
 	});
 	$(window).konami(function(){
 		konami = !konami;

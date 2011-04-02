@@ -1,16 +1,15 @@
 CC = ~/closure-compiler/compiler.jar
-TARGETS = mac chrome
 FLAGS = --compilation_level ADVANCED_OPTIMIZATIONS
 BUILDDIR = /tmp/twiticabuild
-TMPDIR := ${foreach dir,$(TARGETS),$(BUILDDIR)-$(dir)}
+TMPDIR = /tmp/twiticabuild-chrome /tmp/twiticabuild-appengine ../Twitica\ Mac/twitica
 APPCFG = /opt/local/share/google_appengine/appcfg.py
 
 ifdef DEBUG
 	FLAGS += --formatting=PRETTY_PRINT --formatting=PRINT_INPUT_DELIMITER
 endif
 
-all: | build mac-install
-build: dist-mac ../twitica-full.zip
+all: | build appengine-install
+build: build-appengine build-mac ../twitica-full.zip
 debug: FLAGS += --formatting=PRETTY_PRINT --formatting=PRINT_INPUT_DELIMITER
 debug: build
 options_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js
@@ -28,7 +27,7 @@ twitica_file_list = twplus/twitter.js imageloader.js twitica.js
 twitica_EXTERNS = ${foreach extern,$(twitica_externs_list),--externs $(extern)}
 twitica_ARG = ${foreach file,$(twitica_file_list),--js $(file)}
 
-twitica.compiled.js.chrome twitica.compiled.js.mac: twitica.js
+twitica.compiled.js.chrome twitica.compiled.js.mac twitica.compiled.js.appengine: twitica.js
 	java -jar $(CC) --define TwPlusAPI=\"$(TARGET)\" $(FLAGS) $(twitica_EXTERNS) \
 		$(twitica_ARG) --js_output_file $@ 2>&1 \
 		| grep -E 'twitter\.js|imageloader\.js|twitica\.js|ERROR|Exception' || true
@@ -43,31 +42,42 @@ $(TMPDIR): twplus/options.compiled.js
 	mv $(DIST)/twitica.compiled.js.$(TARGET) $(DIST)/twitica.compiled.js
 	rm $(DIST)/twitica.compiled.js.* || true
 
-mac: TARGET = mac
-mac: twitica.compiled.js.mac
-mac-appengine: mac
+remove-twplus-file:
+	rm -rf $(DIST)/twplus/{getPIN.js,handler.js,options.*,twitter.js,handler.html}
+
+appengine: TARGET = appengine
+appengine: twitica.compiled.js.appengine
+appengine-prep: appengine
 	-mkdir ${abspath $(DIST)/..}
 	cp app.yaml ${abspath $(DIST)/..}
-dist-mac: DIST = $(BUILDDIR)-mac/twitica
-dist-mac: TARGET = mac
-dist-mac: | mac mac-appengine /tmp/twiticabuild-mac
-	rm -rf $(DIST)/twplus
-mac-install: DIST = $(BUILDDIR)-mac/twitica
-mac-install: dist-mac
+build-appengine: DIST = $(BUILDDIR)-appengine/twitica
+build-appengine: TARGET = appengine
+build-appengine: | appengine appengine-prep /tmp/twiticabuild-appengine remove-twplus-file
+appengine-install: DIST = $(BUILDDIR)-appengine/twitica
+appengine-install: dist-appengine
 	$(APPCFG) update ${abspath $(DIST)/..}
 
+build-mac: TARGET = mac
+build-mac: DIST = ../Twitica\ Mac/twitica/
+build-mac: | twitica.compiled.js.mac ../Twitica\ Mac/twitica/ remove-twplus-file
+../Twitica\ Mac/build/Release/Twitica\ Mac.app: build-mac
+	(cd ../Twitica\ Mac; xcodebuild)
 
-chrome: TARGET=chrome
-chrome: twplus/options.compiled.js twitica.compiled.js.chrome
+build-chrome: TARGET=chrome
+build-chrome: twplus/options.compiled.js twitica.compiled.js.chrome
 ../twitica-full.zip: TARGET = chrome
 ../twitica-full.zip: DIST = $(BUILDDIR)-chrome
-../twitica-full.zip: | chrome /tmp/twiticabuild-chrome
+../twitica-full.zip: | build-chrome /tmp/twiticabuild-chrome
 	(cd ${abspath $(DIST)/..}; zip -r ${abspath $(CURDIR)/../twitica-full.zip} ${notdir $(DIST)})
 	@echo "\n\nDon't forget to upload to Chrome Web Store!"
 
 buildclean:
-	rm twitica.compiled.js.{mac,chrome} twplus/options.compiled.js || true
+	rm twitica.compiled.js.* twplus/options.compiled.js || true
 clean: buildclean
-	rm -rf $(BUILDDIR)-{mac,chrome} || true
+	for i in $(TMPDIR); do \
+		rm -r $$i || true; \
+	done
+	rm -r ../Twitica\ Mac/twitica || true
 	rm ../twitica-full.zip || true
-.PHONY: all build build-mac build-chrome debug mac mac-appengine dist-mac mac-install chrome buildclean clean
+.PHONY: all build debug build-chrome build-mac \
+	appengine appengine-prep build-appengine appengine-install buildclean clean remove-twplus-file
