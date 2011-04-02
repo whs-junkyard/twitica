@@ -1205,8 +1205,7 @@ $(function(){
 	}else Tw=undefined;
 	if(!Tw){
 		if(TwPlusAPI == "chrome"){
-			console.log(Tw);
-			//window.location = chrome.extension.getURL("twplus/options.html");
+			window.location = chrome.extension.getURL("twplus/options.html");
 		}else{
 			alert("Not logged in -- backend fault!");
 		}
@@ -1303,7 +1302,6 @@ $(function(){
 		return false;
 	})
 	$(window).keydown(function(e){
-		console.log(e);
 		if(e.target.type == "text" || e.target.type == "password") return;
 		kmul = konami ? -1 : 1;
 		if($("footer textarea").val().length == 0 || e.which == 33 || e.which == 34){

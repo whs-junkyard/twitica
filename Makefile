@@ -43,8 +43,8 @@ $(TMPDIR): twplus/options.compiled.js
 	rm $(DIST)/twitica.compiled.js.* || true
 
 remove-twplus-file:
-	if [ "$(DIST)" = "" ]; then
-		exit 1
+	if [ "$(DIST)" = "" ]; then \
+		exit 1; \
 	fi
 	rm -rf $(DIST)/twplus/{getPIN.js,handler.js,options.*,twitter.js,handler.html}
 
@@ -57,7 +57,7 @@ build-appengine: DIST = $(BUILDDIR)-appengine/twitica
 build-appengine: TARGET = appengine
 build-appengine: | appengine appengine-prep /tmp/twiticabuild-appengine remove-twplus-file
 appengine-install: DIST = $(BUILDDIR)-appengine/twitica
-appengine-install: dist-appengine
+appengine-install: build-appengine
 	$(APPCFG) update ${abspath $(DIST)/..}
 
 build-mac: TARGET = mac

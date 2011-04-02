@@ -1,6 +1,6 @@
 {
 	"name": "Twitica Desktop",
-	"version": "1.9.2",
+	"version": "1.10",
 	"description": "A Twitter client focusing on timeline view.",
 	"options_page": "twplus/options.html",
 	"app": {
