@@ -42,12 +42,6 @@ $(TMPDIR): twplus/options.compiled.js
 	mv $(DIST)/twitica.compiled.js.$(TARGET) $(DIST)/twitica.compiled.js
 	rm $(DIST)/twitica.compiled.js.* || true
 
-remove-twplus-file:
-	if [ "$(DIST)" = "" ]; then \
-		exit 1; \
-	fi
-	rm -rf $(DIST)/twplus/{getPIN.js,handler.js,options.*,twitter.js,handler.html}
-
 appengine: TARGET = appengine
 appengine: twitica.compiled.js.appengine
 appengine-prep: appengine
@@ -55,14 +49,19 @@ appengine-prep: appengine
 	cp app.yaml ${abspath $(DIST)/..}
 build-appengine: DIST = $(BUILDDIR)-appengine/twitica
 build-appengine: TARGET = appengine
-build-appengine: | appengine appengine-prep /tmp/twiticabuild-appengine remove-twplus-file
+build-appengine: | appengine appengine-prep /tmp/twiticabuild-appengine
+	-rm $(DIST)/manifest.json
+	-rm $(DIST)/twplus/{getPIN.js,handler.html}
+	-rm $(DIST)/twplus/options.*
 appengine-install: DIST = $(BUILDDIR)-appengine/twitica
 appengine-install: build-appengine
 	$(APPCFG) update ${abspath $(DIST)/..}
 
 build-mac: TARGET = mac
 build-mac: DIST = ../Twitica\ Mac/twitica/
-build-mac: | twitica.compiled.js.mac ../Twitica\ Mac/twitica/ remove-twplus-file
+build-mac: | twitica.compiled.js.mac ../Twitica\ Mac/twitica/
+	-rm $(DIST)/manifest.json
+	-rm $(DIST)/twplus/{getPIN.js,handler.html}
 ../Twitica\ Mac/build/Release/Twitica\ Mac.app: build-mac
 	(cd ../Twitica\ Mac; xcodebuild)
 
@@ -83,6 +82,7 @@ clean: buildclean
 	rm -r ../Twitica\ Mac/twitica || true
 	rm ../twitica-full.zip || true
 .PHONY: all build debug build-chrome build-mac \
-	appengine appengine-prep build-appengine appengine-install buildclean clean remove-twplus-file
+	appengine appengine-prep build-appengine appengine-install \
+	remove-extension-file buildclean clean remove-twplus-file
 # sometimes it ask for username
 .NOTPARALLEL: appengine-install

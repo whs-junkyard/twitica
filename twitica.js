@@ -1,3 +1,4 @@
+/** @define {string} API for cool features */ var TwPlusAPI="";
 /** @type {number} */
 var curPos=0;
 /** @type {number} */
@@ -24,16 +25,16 @@ var SET;
 var twFirstLoadDone;
 /** @type {Object.<string, jQuery>} */
 var dataDiv = {};
-var DB;
+if(TwPlusAPI != "mac")
+	var DB;
 /** @type {(null|Array.<string,string>)} */
 var failtweet;
-/** @type {Twitter} */
+/** @type {(null|Twitter)} */
 var Tw;
 /** @type {(null|string)} */
 var in_reply_to;
 /** @type {number} */
 var refocus_bounce;
-/** @define {string} API for cool features */ var TwPlusAPI="";
 google.load("earth", "1");
 
 /**
@@ -153,7 +154,7 @@ function twcom(what, callback){
 		}).bind(this, callback, what.url));
 	}else if(what.type == "shorten"){
 		$.getJSON("https://api-ssl.bit.ly/v3/shorten?login=manatsawin&apiKey=R_fe0508be39d31d16b36c8ae014d4bfc4&format=json&domain=j.mp&longUrl="+encodeURIComponent(what.url), {}, (function(how,d){
-			how({url: d.data.url, old: d.data.long_url});
+			how({'url': d['data']['url'], 'old': d['data']['long_url']});
 		}).bind(this, callback));
 	}else if(what.type == "ytplaying" && TwPlusAPI == "chrome"){
 		// find yt window
@@ -534,24 +535,33 @@ function processMsg(d, kind){
 			}
 		}
 		if(!dataDiv[d['in_reply_to_status_id_str']]){
-			// Try look it in db first
-			DB.transaction(function(x){
-				x.executeSql("SELECT * FROM notices WHERE id=? AND kind=?", [d['in_reply_to_status_id_str'], kind], function(x,rs){
-					rs = rs.rows;
-					if(rs.length == 0){
-						cb=function(origt){
-							DB.transaction(function(x){ // somehow not writing this causing DOM Exception 11
-								x.executeSql("INSERT INTO notices (id, kind, data, creation) VALUES (?,?,?, ?)", [origt.id_str, kind, JSON.stringify(origt), new Date().getTime()]);
-							});
-							handleGotStatus(origt);
-						};
-						if(kind == "twitter")
-							twcom({type: "tw.status", data: d['in_reply_to_status_id_str']}, cb);
-					}else{
-						handleGotStatus(JSON.parse(rs.item(0).data));
+			function tweetNotFound(){
+				cb=function(origt){
+					if(TwPlusAPI != "mac"){
+						DB.transaction(function(x){
+							x.executeSql("INSERT INTO notices (id, kind, data, creation) VALUES (?,?,?, ?)", [origt.id_str, kind, JSON.stringify(origt), new Date().getTime()]);
+						});
 					}
+					handleGotStatus(origt);
+				};
+				if(kind == "twitter")
+					twcom({type: "tw.status", data: d['in_reply_to_status_id_str']}, cb);
+			}
+			if(TwPlusAPI != "mac"){
+				// Try look it in db first
+				DB.transaction(function(x){
+					x.executeSql("SELECT * FROM notices WHERE id=? AND kind=?", [d['in_reply_to_status_id_str'], kind], function(x,rs){
+						rs = rs.rows;
+						if(rs.length == 0){
+							tweetNotFound();
+						}else{
+							handleGotStatus(JSON.parse(rs.item(0).data));
+						}
+					});
 				});
-			});
+			}else{
+				tweetNotFound();
+			}
 		}else{
 			dent.data("replystatus", dataDiv[d['in_reply_to_status_id_str']].data("data"));
 		}
@@ -612,9 +622,7 @@ function processMsg(d, kind){
 				});
 				e.preventDefault();
 			}).data("click", true);*/
-		}else if(this.href.match(/^http[s]{0,1}:\/\/twitpic.com\//) || 
-				this.href.match(/^http[s]{0,1}:\/\/plixi.com\/p\//) ||
-				this.href.match(/^http[s]{0,1}:\/\/lockerz.com\/s\//)){
+		}else if(ImageLoader['getProvider'](this.href)){
 			$(this).bind("click", function(e){
 				if(linkCheck(e) == false) return true;
 				notify("Loading image...");
@@ -646,7 +654,7 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 		return;
 	}
 	if(d['retweeted_status'] && isBlocked(d['retweeted_status']['user']['screen_name'])) return;
-	if(!$.query.get("timeline")){
+	if(!$.query.get("timeline") && TwPlusAPI != "mac"){
 		DB.transaction(function(x){
 			nd = $.extend(true, {}, d);
 			delete nd['html'];
@@ -920,23 +928,25 @@ function chirpParse(d){
 		addTweet(d);
 	}else if(d['friends']){
 		CHDfriends = d['friends'];
-		DB.transaction(function(x){
-			x.executeSql("SELECT * FROM following", null, function(x, rs){
-				rs = rs.rows;
-				for(i=0; i<rs.length; i++){
-					d = rs.item(i);
-					if(CHDfriends.indexOf(d['id']) == -1){
-						// user have unfollowed, remove target
-						x.executeSql("DELTE FROM following WHERE id=?", [d['id']]);
+		if(TwPlusAPI != "mac"){
+			DB.transaction(function(x){
+				x.executeSql("SELECT * FROM following", null, function(x, rs){
+					rs = rs.rows;
+					for(i=0; i<rs.length; i++){
+						d = rs.item(i);
+						if(CHDfriends.indexOf(d['id']) == -1){
+							// user have unfollowed, remove target
+							x.executeSql("DELTE FROM following WHERE id=?", [d['id']]);
+						}
 					}
-				}
+				});
 			});
-		});
+		}
 	/* Events intentionally not handled: retweet */
 	}else if(d['event'] == "follow"){
 		if(d['target']['id'] == accInfo['twitter']['data']['id']){
 			notify("<b>"+d['source']['screen_name']+"</b> started following you.");
-		}else if(d['source']['id'] == accInfo['twitter']['data']['id']){
+		}else if(TwPlusAPI != "mac" && d['source']['id'] == accInfo['twitter']['data']['id']){
 			DB.transaction(function(x){
 				x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d['target']['id'], d['target']['screen_name'], JSON.stringify(d['target']), "twitter"]);
 			});
@@ -1161,6 +1171,7 @@ function loadFollowing(){
 	return;
 	if(new Date().getTime() - localStorage['lastFollowLoad'] < 3600*24) return;
 	twcom({type: "friends", "data": {cursor: -1}}, function(out){
+		// what about mac?
 		DB.transaction(function(x){
 			//out.forEach(
 			x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d['target']['id'], d['target']['screen_name'], JSON.stringify(d.target), "twitter"]);
@@ -1171,22 +1182,24 @@ function loadFollowing(){
 var konami=false;
 
 $(function(){
-	DB = window.openDatabase("TwiticaDesktop", "1", "Twitica Desktop's old notices storage", 1024*1024);
-	DB.transaction(function(x){
-		x.executeSql('SELECT * FROM scrollback LIMIT 1', null, function(){}, function(){
-			// so, create the db!
-			x.executeSql('CREATE TABLE scrollback (id INTEGER PRIMARY KEY AUTOINCREMENT, data BLOB, kind TEXT)', null, function(){
-				twitterLoad(false, chirp);
-			}, function(){console.error(arguments);});
+	if(TwPlusAPI != "mac"){
+		DB = window.openDatabase("TwiticaDesktop", "1", "Twitica Desktop's old notices storage", 1024*1024);
+		DB.transaction(function(x){
+			x.executeSql('SELECT * FROM scrollback LIMIT 1', null, function(){}, function(){
+				// so, create the db!
+				x.executeSql('CREATE TABLE scrollback (id INTEGER PRIMARY KEY AUTOINCREMENT, data BLOB, kind TEXT)', null, function(){
+					twitterLoad(false, chirp);
+				}, function(){console.error(arguments);});
+			});
+			x.executeSql('DELETE FROM notices WHERE creation <= ?', [new Date().getTime() - (3600)], function(){}, function(){
+				x.executeSql('CREATE TABLE notices (id BIGINT PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
+			});
+			x.executeSql('SELECT * FROM following', null, function(){}, function(){
+				localStorage['lastFollowLoad'] = 0;
+				x.executeSql('CREATE TABLE following (id BIGINT PRIMARY KEY, name TEXT, data BLOB, kind TEXT)');
+			})
 		});
-		x.executeSql('DELETE FROM notices WHERE creation <= ?', [new Date().getTime() - (3600)], function(){}, function(){
-			x.executeSql('CREATE TABLE notices (id BIGINT PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
-		});
-		x.executeSql('SELECT * FROM following', null, function(){}, function(){
-			localStorage['lastFollowLoad'] = 0;
-			x.executeSql('CREATE TABLE following (id BIGINT PRIMARY KEY, name TEXT, data BLOB, kind TEXT)');
-		})
-	});
+	}
 	if(!localStorage['blockKey']) localStorage['blockKey'] = "";
 	if(!localStorage['config'])
 		localStorage['config'] = '{"nogeo": true}';
@@ -1202,13 +1215,16 @@ $(function(){
 	if(localStorage['twitterKey']){
 		keys = JSON.parse(localStorage['twitterKey']);
 		Tw = new Twitter(keys[0], keys[1]);
-	}else Tw=undefined;
+	}
 	if(!Tw){
 		if(TwPlusAPI == "chrome"){
 			window.location = chrome.extension.getURL("twplus/options.html");
+		}else if(TwPlusAPI == "mac"){
+			window.location = "twplus/options.html";
 		}else{
 			alert("Not logged in -- backend fault!");
 		}
+		return;
 	}
 	twcom({type: "tw.info"}, function(d){
 		accInfo = {"twitter": {"username": d['screen_name'], "data": d}};
@@ -1367,9 +1383,9 @@ $(function(){
 				urls = $.unique(urls);
 				notify("Shortening URLs");
 				urls.forEach(function(me){
-						twcom({type: "shorten", url: me}, function(res){
+					twcom({'type': "shorten", 'url': me}, function(res){
 						ov = $("footer textarea").val();
-						ov = ov.replace(res.old, res.url);
+						ov = ov.replace(res['old'], res['url']);
 						$("footer textarea").val(ov);
 					});
 				});
@@ -1563,7 +1579,7 @@ $(function(){
 		}, false);
 	}
 	
-	if(!$.query.get("timeline")){
+	if(!$.query.get("timeline") && TwPlusAPI != "mac"){
 		DB.transaction(function(x){
 			x.executeSql("SELECT * FROM scrollback ORDER BY id ASC", null, function(x, rs){
 				rs = rs.rows;
