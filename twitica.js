@@ -131,9 +131,9 @@ function twcom(what, callback){
 			return false;
 		}
 		data = {};
-		if(what.data.status) data.status = what.data.status;
-		if(what.data.irp) data.in_reply_to_status_id = what.data.irp;
-		if(what.data.lat) data.lat = what.data.lat;
+		if(what.data['status']) data.status = what.data['status'];
+		if(what.data['irp']) data['in_reply_to_status_id'] = what.data['irp'];
+		if(what.data['lat']) data.lat = what.data['lat'];
 		if(what.data['long']) data['long'] = what.data['long'];
 		//data["include_entities"] = true;
 		return Tw.post("statuses/update", data, callback);
@@ -171,7 +171,7 @@ function twcom(what, callback){
 			});
 			callback(out);
 		});
-	}else if(what.type == "friends"){
+	}else if(what.type == "tw.friends"){
 		return Tw.get("statuses/friends", what.data, callback);
 	}else if(TwPlusAPI == "chrome"){
 		id=new Date().getTime();
@@ -436,7 +436,7 @@ function processMsg(d, kind){
 		extraHtml: " target=\"blank\"",
 		usernameUrlBase: "https://twitter.com/",
 		listUrlBase: "https://twitter.com/"
-	})+"</span>");
+	}).replace("\n", "<br />")+"</span>");
 	if(!d['user']['profile_url']){
 		if(kind == "twitter")
 			d['user']['profile_url'] = "https://twitter.com/"+d['user']['screen_name'];
@@ -744,7 +744,7 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 		}catch(e){}
 	}
 	//if(accInfo[kind] && d.in_reply_to_screen_name == accInfo[kind]['username']){
-	if(accInfo[kind] && d['text'].match(new RegExp("@"+accInfo[kind]['username']+"(?: |$)", "i"))){
+	if(accInfo[kind] && d['user']['id'] != accInfo[kind]['data']['id'] && d['text'].match(new RegExp("@"+accInfo[kind]['username']+"(?: |$)", "i"))){
 		if(notifyMention && !$.query.get("timeline")){
 			comnotify("@"+d['user']['screen_name'], d['text'], d['user']['profile_image_url']);
 		}
@@ -1165,20 +1165,39 @@ function geoPoller(){
 
 /**
  * Load Twitter following list
- * @todo Finish this
  */
 function loadFollowing(){
-	return;
-	if(new Date().getTime() - localStorage['lastFollowLoad'] < 3600*24) return;
-	twcom({type: "friends", "data": {cursor: -1}}, function(out){
-		// what about mac?
+	if(TwPlusAPI == "mac") return;
+	if(new Date().getTime() - localStorage['lastFollowLoad'] < 3600*24*1000) return;
+	DB.transaction(function(x){
+		// sqlite docs said this is called truncate
+		x.executeSql("DELETE FROM following");
+	});
+	function handleGotPage(out){
 		DB.transaction(function(x){
-			//out.forEach(
-			x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d['target']['id'], d['target']['screen_name'], JSON.stringify(d.target), "twitter"]);
+			out['users'].forEach(function(d){
+				x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d['id'], d['screen_name'], JSON.stringify(d), "twitter"]);
+			});
 		});
 		localStorage['lastFollowLoad'] = new Date().getTime();
-	});
+		if(out['next_cursor_str'] && out['next_cursor_str'] != 0 && out['users'].length > 0)
+		twcom({type: "tw.friends", "data": {"cursor": out['next_cursor_str']}}, handleGotPage);
+	}
+	twcom({type: "tw.friends", "data": {"cursor": -1}}, handleGotPage);
 }
+
+/**
+ * Hightlight menu item a la Mac OS X
+ * @param {string} jQuery Selector
+ */
+function highlightMenu(sel){
+	e=$(sel).parent();
+	e.css({"background": "#666"});
+	setTimeout(function(){
+		e.attr("style", "");
+	}, 250);
+}
+
 var konami=false;
 
 $(function(){
@@ -1241,8 +1260,10 @@ $(function(){
 		loadFollowing();
 	});
 	$("footer textarea").bind("keyup", function(e){
-		if(e.which != 9)
+		if(e.which != 9){
 			$(this).data("autocomplete", null);
+			$(this).data("autocomplete_u", null);
+		}
 		left = 140 - this.value.length;
 		$("#lencounter").html(left);
 		if($(this).data("mention")){
@@ -1298,13 +1319,28 @@ $(function(){
 	updateTOTD();
 	setInterval(updateTOTD, 15*60*1000);
 	
+	function getMentioning(){
+		ft = $("footer textarea");
+		t = ft.get(0).selectionEnd;
+		txt = $.trim(ft.val());
+		pos = txt.substr(0, t) + "!!!!!!" + txt.substr((t-1)*-1);
+		pos = pos.split(/([: ])/);
+		thePos = -1;
+		$.each(pos, function(i,e){
+			if(e.indexOf("!!!!!!") != -1){
+				thePos = i;
+				return false;
+			}
+			return true;
+		});
+		if(thePos == -1) throw("Oh, shit");
+		txt = txt.split(/([: ])/);
+		if(txt[thePos].match(/^@/)) return thePos;
+	}
+	
 	/**
 	 * Event bindings
 	 */
-	$("#refreshbut").click(function(){
-		twitterLoad();
-		return false;
-	});
 	$("#refreshbut").click(function(){
 		twitterLoad();
 		return false;
@@ -1358,13 +1394,17 @@ $(function(){
 		if(cmdKey){ 
 			if(e.which == 89){
 				replyCur();
+				highlightMenu("#replybut");
 				e.preventDefault();
 			}else if(e.which == 69){
 				repeatCur();
+				highlightMenu("#retweetbut");
 				e.preventDefault();
 			}else if(e.which == 82){
-				if(!CHD.xhr)
+				if(!CHD.xhr){
+					highlightMenu("#refreshbut");
 					twitterLoad();
+				}
 				e.preventDefault();
 			}else if(e.which == 70){
 				search(true);
@@ -1396,6 +1436,9 @@ $(function(){
 				notify("Blocked "+bk.split("||").length+" conditions");
 				localStorage['blockKey'] = bk;
 			}
+		}
+		if(e.which == 9){
+			var mentioning = getMentioning();
 		}
 		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration"].sort();
 		if(TwPlusAPI != "chrome"){
@@ -1470,7 +1513,8 @@ $(function(){
 			$("footer textarea").val("")
 				.data("mention", null)
 				.data("elem", null)
-				.data("autocomplete", null);
+				.data("autocomplete", null)
+				.data("autocomplete_u", null);
 			$(".mentioned").removeClass("mentioned");
 			e.preventDefault();
 		}else if(e.which == 9 && $.trim($("footer textarea").val()).indexOf("/") == 0){
@@ -1496,6 +1540,37 @@ $(function(){
 			// okay now we got the command
 			$("footer textarea").val("/"+cmds[iUseThis[0]]+" ").data("autocomplete", {kwd: kwd, output: output});
 			setCaretTo($("footer textarea").get(0), $("footer textarea").val().length);
+		}else if(e.which == 9 && mentioning !== undefined && TwPlusAPI != "mac"){
+			e.preventDefault();
+			moreTab = $("footer textarea").data("autocomplete_u");
+			txt = $.trim($("footer textarea").val()).split(/([: ])/);
+			if(moreTab){
+				kwd = moreTab.kwd;
+				pos = moreTab.pos + 1;
+			}else{
+				kwd = txt[mentioning].substr(1);
+				pos = 0;
+			}
+			DB.transaction(function(x){
+				x.executeSql("SELECT name FROM following WHERE name LIKE ? ORDER BY name LIMIT ?,1", [kwd+"%", pos], function(x, rs){
+					rs = rs.rows;
+					if(rs.length == 0){return notify("No autocomplete match for user");}
+					d = rs.item(0);
+					txt[mentioning] = "@"+d['name']+"!!!!!!!!!!";
+					// joined text
+					jned = txt.join("");
+					// replaced value, going to use in textarea
+					rpval = jned.replace("!!!!!!!!!!", "");
+					txtPos = jned.indexOf("!!!!!!!!!!")
+					if(txtPos == jned.length - "!!!!!!!!!!".length){
+						rpval += " ";
+						txtPos += 1;
+					}
+					$("footer textarea").val(rpval);
+					setCaretTo($("footer textarea").get(0), txtPos);
+				})
+			}, function(e,i){console.error(e);});
+			$("footer textarea").data("autocomplete_u", {kwd: kwd, pos: pos});
 		}else if(e.which == 90 && failtweet){
 			in_reply_to = failtweet[1];
 			$("footer textarea").val(failtweet[0]);

@@ -13,7 +13,7 @@ TwitPicLoader = function(url){
 };
 /**
  * Get the large image URL from TwitPic
- * FIXME: Make it use proper API if TwitPic offers one
+ * Note that TwitPic API doesn't offer JSONP
  * @param {Function} Callback function. Will be called with first argument is the image's URL and second argument is the description
  */
 TwitPicLoader.prototype.getURL = function(cb){
@@ -55,10 +55,56 @@ OEmbedLoader = function(url, endpoint){
  * @param {Function} Callback function. Will be called with first argument is the image's URL and second argument is the description
  */
 OEmbedLoader.prototype.getURL = function(cb){
-	$.getJSON(this.endpoint+"?callback=?", {"url": this.url}, function(d){
+	join = this.endpoint.indexOf("?") == -1 ? "?" : "&"
+	$.getJSON(this.endpoint+join+"callback=?", {"url": this.url}, function(d){
 		cb(d['url'], d['title']);
 	})
 }
+/**
+ * picplz Image Loader
+ * Example: ldr = new PicPlzLoader("https://picplz.com/Jn22");
+ * @param {string} URL of the PicPlz page.
+ * @constructor
+ */
+PicPlzLoader = function(url){
+	if(url.match(/http[s]{0,1}:\/\/picplz\.com\/user\/[^\/]+\/pic\/([^\/]+)/)){
+		this.urlType = "longurl";
+	}else{
+		this.urlType = "shorturl";
+	}
+	this.code = url.match(/\/([^\/]+)[\/]{0,1}$/)[1];
+};
+/**
+ * Get the image URL from Plixi API
+ * @param {Function} Callback function. Will be called with first argument is the image's URL and second argument is the description
+ */
+PicPlzLoader.prototype.getURL = function(cb){
+	data = {};
+	data[this.urlType+"_id"] = this.code;
+	$.getJSON("https://api.picplz.com/api/v2/pic.json?callback=?", data, function(d){
+		pic = d['value']['pics'][0];
+		cb(pic['pic_files']['640r']['img_url'], pic['caption']);
+	});
+};
+/**
+ * twitgoo Image Loader
+ * Note: No HTTPS support.
+ * Example: ldr = new TwitGooLoader("http://twitgoo.com/a05dh");
+ * @param {string} URL of the twitgoo page.
+ * @constructor
+ */
+TwitGooLoader = function(url){
+	this.code = url.match(/^http:\/\/twitgoo\.com\/([0-9a-zA-Z]+)/)[1];
+};
+/**
+ * Get the image URL from twitgoo API
+ * @param {Function} Callback function. Will be called with first argument is the image's URL and second argument is the description
+ */
+TwitGooLoader.prototype.getURL = function(cb){
+	$.getJSON("http://twitgoo.com/api/message/info/"+this.code+"?format=json&callback=?", function(d){
+		cb(d['imageurl'], d['text']);
+	});
+};
 
 /* Main class */
 window['ImageLoader'] = {
@@ -69,6 +115,7 @@ window['ImageLoader'] = {
 	 */
 	"getProvider": function(url){
 		if(url.match(/^http[s]{0,1}:\/\/twitpic\.com\/([0-9a-zA-Z]+)/)){
+			// oohEmbed doesn't offer title
 			return new TwitPicLoader(url);
 		}else if(url.match(/^http[s]{0,1}:\/\/plixi\.com\/p\/([0-9]+)/)||
 				url.match(/^http[s]{0,1}:\/\/lockerz\.com\/s\/([0-9]+)/)||
@@ -76,7 +123,25 @@ window['ImageLoader'] = {
 			return new PlixiLoader(url);
 		}else if(url.match(/^http[s]{0,1}:\/\/upic\.me\/(show\/([0-9]+)|e[^\/]+)/)){
 			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://upic.me/api/oembed");
+		}else if(url.match(/^http[s]{0,1}:\/\/instagr\.am\/p\/([^\/]+)/)){
+			return new OEmbedLoader(url, "https://api.instagram.com/oembed");
+		}else if(url.match(/^http[s]{0,1}:\/\/picplz\.com\/([^\/]+)/) ||
+				url.match(/http[s]{0,1}:\/\/picplz\.com\/user\/[^\/]+\/pic\/([^\/]+)/)){
+			return new PicPlzLoader(url);
+		}else if(url.match(/^http[s]{0,1}:\/\/(www\.|)flickr\.com\/photos\/(.*?)\/([0-9]+)/)){
+			// 1: flic.kr is not supported by oembed
+			// 2: flickr oembed doesn't support JSONP
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://oohembed.com/oohembed/");
+		}else if(url.match(/^http[s]{0,1}:\/\/(www\.|)xkcd\.com\/([0-9]+)/)){
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://oohembed.com/oohembed/");
+		}else if(url.match(/^http:\/\/twitgoo\.com\/([0-9a-zA-Z]+)/)){
+			// no HTTPS support
+			return new TwitGooLoader(url);
 		}
+		/*else if(url.match(/^http[s]{0,1}:\/\/(www\.|)yfrog\.(com|ru|com.tr|it|fr|co.il|co.uk|com.pl|pl|eu|us)\/(.+)/)){
+			// yfrog doesn't offer JSONP
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://oohembed.com/oohembed/");
+		}*/
 	},
 	"viewer": {
 		/**
