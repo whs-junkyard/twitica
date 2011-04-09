@@ -1,3 +1,4 @@
 .DS_Store
 *.compiled.js
 *.compiled.js.*
+twplus/options.compiled.js

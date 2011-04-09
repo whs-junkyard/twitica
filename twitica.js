@@ -111,14 +111,18 @@ function twcom(what, callback){
 			return false;
 		}
 		if(!what.data.timeline) what.data.timeline = "home";
-		if(what.data.timeline == "replies") what.data.timeline = "mentions";
-		if(["mentions", "retweets_of_me", "retweeted_to_me", "retweeted_by_me"].indexOf(what.data.timeline) != -1)
-			apiName = what.data.timeline;
-		else
-			apiName = what.data.timeline+"_timeline";
-		if(!what.param) what.param = {};
-		//what.param["include_entities"] = true;
-		return Tw.get("statuses/"+apiName, what.param, callback);
+		if(what.data.timeline == "dm"){
+			return Tw.get("direct_messages", what.param, callback);
+		}else{
+			if(what.data.timeline == "replies") what.data.timeline = "mentions";
+			if(["mentions", "retweets_of_me", "retweeted_to_me", "retweeted_by_me"].indexOf(what.data.timeline) != -1)
+				apiName = what.data.timeline;
+			else
+				apiName = what.data.timeline+"_timeline";
+			if(!what.param) what.param = {};
+			//what.param["include_entities"] = true;
+			return Tw.get("statuses/"+apiName, what.param, callback);
+		}
 	}else if(what.type == "tw.status"){
 		if(!Tw){
 			console.error("No OAuth!");
@@ -432,6 +436,10 @@ function processMsg(d, kind){
 		d = d['retweeted_status'];
 		d['rtdata'] = rtData;
 	}
+	// DM
+	if(d['sender']){
+		d['user'] = d['sender'];
+	}
 
 	d['html'] = $("<span>"+twttr.txt.autoLink(d['text'].replace(/</g, "&lt;").replace(/>/g, "&gt;"), {
 		extraHtml: " target=\"blank\"",
@@ -650,9 +658,16 @@ function processMsg(d, kind){
  * @param {String} Origin ("twitter" only)
  */
 function addMsg(d, doScroll, eff, notifyMention, kind){
+	// DM
+	if(d['sender']){
+		d['user'] = d['sender'];
+		d['source'] = "";
+	}
 	if(dentsRendered.indexOf(d['id_str']) != -1) return;
-	if(isBlocked(d['user']['screen_name'], ungt(d['source']), ungt(d['text']), d['user']['following'])){
-		return;
+	if(!d['sender']){
+		if(isBlocked(d['user']['screen_name'], ungt(d['source']), ungt(d['text']), d['user']['following'])){
+			return;
+		}
 	}
 	if(d['retweeted_status'] && isBlocked(d['retweeted_status']['user']['screen_name'])) return;
 	if(!$.query.get("timeline") && TwPlusAPI != "mac"){
@@ -796,6 +811,15 @@ function replyCur(){
 	/** @const */ var ft = $("footer textarea");
 	if(getCurrent().data("type") == "twitter")
 		in_reply_to = twdata['id_str'];
+		
+	if($.query.get("timeline") == "dm"){
+		ft.val("d "+twdata['user']['screen_name']+" "+ ft.val())
+			.data("mention", twdata['user']['screen_name']);
+		setCaretTo(ft.get(0), ft.val().length);
+		$(".user").removeClass("mentioned");
+		$(".user", getCurrent()).addClass("mentioned");
+		return;
+	}
 	
 	if(ft.data("elem") && ft.data("elem").selector == getCurrent().selector
 			&& ft.val() == "@"+twdata['user']['screen_name']+" "){
@@ -828,6 +852,9 @@ function replyCur(){
  * Repeat/Retweet the selected message
  */
 function repeatCur(){
+	if($.query.get("timeline") == "dm"){
+		return notify("Not applicable.");
+	}
 	type = getCurrent().data("type");
 	if(type == "twitter"){
 		if(getCurrent().data("data")['user']['protected'] && !getCurrent().data("data")['retweeted_status']){ // rt always rt-able!
@@ -1252,6 +1279,8 @@ $(function(){
 		titleAdd = " ";
 		if($.query.get("timeline") == "replies"){
 			document.title = "Mentions to @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
+		}else if($.query.get("timeline") == "dm"){
+			document.title = "Direct Messages to @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}else if($.query.get("timeline") == "user"){
 			document.title = "@"+$.query.get("user")+" from @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}else{
@@ -1402,7 +1431,7 @@ $(function(){
 				highlightMenu("#retweetbut");
 				e.preventDefault();
 			}else if(e.which == 82){
-				if(!CHD.xhr){
+				if(!CHD.connected){
 					highlightMenu("#refreshbut");
 					twitterLoad();
 				}
@@ -1439,6 +1468,9 @@ $(function(){
 			}else if(e.which == 90 && failtweet){
 				in_reply_to = failtweet[1];
 				$("footer textarea").val(failtweet[0]);
+				e.preventDefault();
+			}else if(e.which == 190){
+				window.open("?timeline=dm", 'repliestimeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
 				e.preventDefault();
 			}
 		}
