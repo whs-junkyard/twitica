@@ -521,9 +521,17 @@ function processMsg(d, kind){
 	if(d['user']['protected']) lock = "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'>";
 	if(d['rtdata']) info.push("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
 	
-	dent = $('<article><table><tr><td><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td><td class="noticetdin">'
+	avatarLeft = '<td><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td>';
+	avatarRight = "";
+	tdClass = "";
+	if(SET['rightside'] && d['user']['id'] == accInfo['twitter']['data']['id']){
+		avatarRight = avatarLeft.replace('class="avatar"', 'class="avatarright"');
+		avatarLeft = "";
+		tdClass = "leftaligned"
+	}
+	dent = $('<article><table><tr>'+avatarLeft+'<td class="noticetdin '+tdClass+'">'
 		+ '<div>'+lock+'<span class="user" title="'+d['user']['name']+' ('+kind+')">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
-		+ '</td></tr></table></article>'
+		+ '</td>'+avatarRight+'</tr></table></article>'
 	);
 	$(".noticebody", dent).append(d['html']);
 	$("a>.avatar", dent).click(function(e){
@@ -1477,7 +1485,7 @@ $(function(){
 		if(e.which == 9){
 			var mentioning = getMentioning();
 		}
-		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration"].sort();
+		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside"].sort();
 		if(TwPlusAPI != "chrome"){
 			cmds.remove(cmds.indexOf("ytplaying"));
 		}
@@ -1508,7 +1516,7 @@ $(function(){
 				notify("Notification time set to "+SET['notifyDuration']);
 				$("footer textarea").val("")
 				return false;
-			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo)(?: +|$)/)){
+			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside)(?: +|$)/)){
 				toggleSet  = toggleSet[1];
 				SET[toggleSet] = !SET[toggleSet]
 				localStorage['config'] = JSON.stringify(SET);
@@ -1516,7 +1524,8 @@ $(function(){
 					"bgimg": "Background image",
 					"nothai": "No Thai input",
 					"autoscroll": "Auto scrolling",
-					"nogeo": "Disable geolocation"
+					"nogeo": "Disable geolocation",
+					"rightside": "Own avatar at right"
 				}
 				if(SET[toggleSet] == true) notify(setName[toggleSet]+" <strong>ON</strong>");
 				else notify(setName[toggleSet]+" <strong>OFF</strong>");
