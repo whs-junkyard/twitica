@@ -521,7 +521,7 @@ function processMsg(d, kind){
 	if(d['user']['protected']) lock = "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'>";
 	if(d['rtdata']) info.push("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
 	
-	avatarLeft = '<td><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td>';
+	avatarLeft = '<td class="avatarbox"><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td>';
 	avatarRight = "";
 	tdClass = "";
 	if(SET['rightside'] && d['user']['id'] == accInfo['twitter']['data']['id']){
