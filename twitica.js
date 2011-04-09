@@ -189,11 +189,12 @@ function twcom(what, callback){
  * @param {String=} Icon URL (optional)
  */
 function comnotify(title, msg, icon){
-	if(SET['notifyDuration'] == undefined) SET['notifyDuration'] = 3;
+	if(SET['notifyDuration'] === undefined) SET['notifyDuration'] = 3;
 	if(window.webkitNotifications){
 		noti = window.webkitNotifications.createNotification(icon, title, msg);
 		noti.show();
-		setTimeout(function(){noti.cancel()}, SET['notifyDuration'] * 1000, noti);
+		if(SET['notifyDuration'] !== undefined && SET['notifyDuration'] > 0)
+			setTimeout(function(){noti.cancel()}, SET['notifyDuration'] * 1000, noti);
 		return noti;
 	}else{
 		unsupported();
@@ -1435,6 +1436,10 @@ $(function(){
 				if(!bk) return
 				notify("Blocked "+bk.split("||").length+" conditions");
 				localStorage['blockKey'] = bk;
+			}else if(e.which == 90 && failtweet){
+				in_reply_to = failtweet[1];
+				$("footer textarea").val(failtweet[0]);
+				e.preventDefault();
 			}
 		}
 		if(e.which == 9){
@@ -1466,7 +1471,7 @@ $(function(){
 					notify("Usage: /notifyduration "+SET['notifyDuration']);
 					return false;
 				}
-				SET['notifyDuration'] = parseInt(arg[1]);
+				SET['notifyDuration'] = parseFloat(arg[1]);
 				localStorage['config'] = JSON.stringify(SET);
 				notify("Notification time set to "+SET['notifyDuration']);
 				$("footer textarea").val("")
@@ -1499,7 +1504,8 @@ $(function(){
 				e.preventDefault();
 				$("footer textarea").val("")
 				return;
-			}else if($.trim(txt).indexOf("/") == 0 && $.trim(txt).indexOf("//") != 0){
+			}else if($.trim(txt).indexOf("/") == 0 && $.trim(txt).indexOf("//") != 0 &&
+					!$.trim(txt).match(/^\/(me|action) /i)){
 				notify("You mistyped a command? You only can send // in tweet.");
 				e.preventDefault();
 				return;
@@ -1554,7 +1560,8 @@ $(function(){
 			DB.transaction(function(x){
 				x.executeSql("SELECT name FROM following WHERE name LIKE ? ORDER BY name LIMIT ?,1", [kwd+"%", pos], function(x, rs){
 					rs = rs.rows;
-					if(rs.length == 0){return notify("No autocomplete match for user");}
+					if(rs.length == 0 && pos > 0) return pos=0;
+					else if(rs.length == 0){return notify("No autocomplete match for user");}
 					d = rs.item(0);
 					txt[mentioning] = "@"+d['name']+"!!!!!!!!!!";
 					// joined text
@@ -1571,10 +1578,6 @@ $(function(){
 				})
 			}, function(e,i){console.error(e);});
 			$("footer textarea").data("autocomplete_u", {kwd: kwd, pos: pos});
-		}else if(e.which == 90 && failtweet){
-			in_reply_to = failtweet[1];
-			$("footer textarea").val(failtweet[0]);
-			e.preventDefault();
 		}
 		$("footer textarea").get(0).focus();
 	});
