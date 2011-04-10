@@ -1071,7 +1071,7 @@ function chirpConnect(){
 		if(CHD.xhr.readyState == 2){
 			if(CHD.xhr.responseText.indexOf("UNAUTHORIZED") != -1){
 				notify("[+] Cannot login to user stream!");
-				$("#refreshbut").show();
+				$("#refreshbut").parent().show();
 				twitterLoad();
 				CHD.xhr.abort();
 			}
@@ -1083,7 +1083,7 @@ function chirpConnect(){
 				notify("[+] Connected to user stream");
 				CHDlastInd = 0;
 				chirpConnected = new Date().getTime();
-				$("#refreshbut").hide();
+				$("#refreshbut").parent().hide();
 				clearTimeout(CHDreset);
 				CHDreset = setTimeout(function(){
 					CHDresetting = true;
