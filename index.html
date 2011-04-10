@@ -238,6 +238,7 @@ article .noticebadge{
 	font-family: "Myriad Pro", "Segoe UI", Helvetica;
 	border: #555 solid 1px;
 	-webkit-box-shadow: black 0px 2px 15px;
+	z-index: 100000;
 }
 #help table{
 	width: 90%;
@@ -284,7 +285,7 @@ article .noticebadge{
 	<h1>Shortcuts</h1>
 	<table>
 		<tr><th>Ctrl+H</th><td>Help</td></tr>
-		<tr><th>Ctrl+R</th><td>Refresh<sup>[1]</sup></td></tr>
+		<tr><th>Ctrl+R</th><td>Refresh (only when not streaming)</td></tr>
 		<tr><th>Ctrl+E</th><td>Retweet</td></tr>
 		<tr><th>Ctrl+Y</th><td>Reply</td></tr>
 		<tr><th>Ctrl+S</th><td>Shorten URLs</td></tr>
@@ -295,14 +296,12 @@ article .noticebadge{
 		<tr><th>Ctrl+M</th><td>Mention timeline</td></tr>
 		<tr><th>Ctrl+.</th><td>DM timeline</td></tr>
 		<tr><th>Enter</th><td>Tweet/Open first link in tweet</td></tr>
-		<tr><th>Tab</th><td>Autocomplete command (hold to rotate)</td></tr>
+		<tr><th>Tab</th><td>Autocomplete commands/names (hold to rotate)</td></tr>
 	</table>
 	<h1>Commands</h1>
 	<p>Type / and press Tab to rotate between commands. Press Enter to run.</p>
-	<h1>Tips</h1>
-	<p id="tips" style="padding: 10px;"></p>
-	<p>(update every 15 minutes)</p>
-	<small><sup>[1]</sup> only when streaming not available</small><br />
+	<h1>Tips <small>(updated every 15 minutes)</small></h1>
+	<p id="tips"></p>
 </div>
 <div id="body">
 </div>

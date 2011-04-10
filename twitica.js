@@ -866,7 +866,8 @@ function repeatCur(){
 	type = getCurrent().data("type");
 	if(type == "twitter"){
 		if(getCurrent().data("data")['user']['protected'] && !getCurrent().data("data")['retweeted_status']){ // rt always rt-able!
-			notify("Cannot retweet protected tweet!");
+			notify("<strong>WARN:</strong> Retweeting protected tweet")
+			$("footer textarea").val("RT @"+getCurrent().data("data")['user']['screen_name']+" "+getCurrent().data("data")['text']);
 			return;
 		}
 		notify("Retweeting...");
@@ -987,6 +988,8 @@ function chirpParse(d){
 				x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d['target']['id'], d['target']['screen_name'], JSON.stringify(d['target']), "twitter"]);
 			});
 		}
+	}else if(d['direct_message']){
+		comnotify("DM from "+d['direct_message']['sender_screen_name'], d['direct_message']['text']+" (press Ctrl/Cmd+. to view/reply)", d['direct_message']['sender']['profile_image_url']);
 	}else{
 		console.log(d, "CHIRP_newkind");
 	}
@@ -1347,7 +1350,8 @@ $(function(){
 		"Click a user's avatar to open their timeline",
 		"Ctrl/Cmd+Click on an image link to open in tab",
 		"Feature request and bug report at @manatsawin",
-		"Press on <img src='marker.png' /> to view map"
+		"Press on <img src='marker.png' /> to view map",
+		"Press Ctrl/Cmd+y two times to reply to all"
 	]);
 	function updateTOTD(){
 		tip = tipList.shift();
@@ -1601,7 +1605,11 @@ $(function(){
 			DB.transaction(function(x){
 				x.executeSql("SELECT name FROM following WHERE name LIKE ? ORDER BY name LIMIT ?,1", [kwd+"%", pos], function(x, rs){
 					rs = rs.rows;
-					if(rs.length == 0 && pos > 0) return pos=0;
+					if(rs.length == 0 && pos > 0){
+						pos=0;
+						$("footer textarea").data("autocomplete_u", {kwd: kwd, pos: pos});
+						return;
+					}
 					else if(rs.length == 0){return notify("No autocomplete match for user");}
 					d = rs.item(0);
 					txt[mentioning] = "@"+d['name']+"!!!!!!!!!!";
