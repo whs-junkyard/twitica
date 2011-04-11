@@ -35,6 +35,8 @@ var Tw;
 var in_reply_to;
 /** @type {number} */
 var refocus_bounce;
+/** @type {boolean} */
+var quoteRT = false;
 google.load("earth", "1");
 
 /**
@@ -868,8 +870,9 @@ function repeatCur(){
 	}
 	type = getCurrent().data("type");
 	if(type == "twitter"){
-		if(getCurrent().data("data")['user']['protected'] && !getCurrent().data("data")['retweeted_status']){ // rt always rt-able!
-			notify("<strong>WARN:</strong> Retweeting protected tweet")
+		if(quoteRT || (getCurrent().data("data")['user']['protected'] && !getCurrent().data("data")['retweeted_status'])){ // rt always rt-able!
+			if(getCurrent().data("data")['user']['protected'])
+				notify("<strong>WARN:</strong> Retweeting protected tweet")
 			$("footer textarea").val("RT @"+getCurrent().data("data")['user']['screen_name']+" "+getCurrent().data("data")['text']);
 			return;
 		}
@@ -1431,6 +1434,14 @@ $(function(){
 					notify("No links found");
 				}
 			}
+		}
+		//shh
+		if(e.ctrlKey && e.altKey && e.which == 46){
+			quoteRT = !quoteRT
+			if(quoteRT) wrd = "ON"; else wrd = "OFF";
+			notify("Quote RT toggled <strong>"+wrd+"</strong>");
+			e.preventDefault();
+			return;
 		}
 		cmdKey = e.ctrlKey;
 		if(navigator.userAgent.match("Macintosh")){
