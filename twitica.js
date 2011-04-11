@@ -177,12 +177,14 @@ function twcom(what, callback){
 		});
 	}else if(what.type == "tw.friends"){
 		return Tw.get("statuses/friends", what.data, callback);
+	}else if(what.type == "refocus" && TwPlusAPI == "mac"){
+		return twmac.refocus(what.count, what.left, what.mention);
 	}else if(TwPlusAPI == "chrome"){
 		id=new Date().getTime();
 		_twcom_callbacks[id] = callback || function(){};
 		$("#twiticom").html(encodeURIComponent(JSON.stringify({id: id, data: what}))).mousedown();
 	}else{
-		throw("Cannot find parser for command");
+		throw("Cannot find parser for command "+what.type);
 	}
 }
 /**
@@ -299,7 +301,7 @@ function refocus(){
 	}else
 		document.title = title
 	if(TwPlusAPI == "mac")
-		twcom({"type": "refocus", "count": count, "mention": mentionCnt});
+		twcom({"type": "refocus", "count": count, "left": left || 0, "mention": mentionCnt});
 	$("#twcounter").html(count+"/"+lastId);
 	
 	if($("#body article.selected").data("id") == curPos && !twFirstLoadDone){
@@ -833,8 +835,9 @@ function replyCur(){
 			&& ft.val() == "@"+twdata['user']['screen_name']+" "){
 		// reply to all
 		ppls = twdata['text'].match(/\B(@[a-z0-9_A-Z\/]+)/g);
+		ppls.unshift("@"+twdata['user']['screen_name']);
 		if(ppls && ppls.length > 0){
-			ppls = ppls.filter(function(x){if(x=="@"+twdata['user']['screen_name']) return false; else return true;});
+			ppls = ppls.filter(function(x){if(x=="@"+accInfo['twitter']['username']) return false; else return true;});
 			ppls = ppls.unique();
 			ft.val(ppls.join(" ")+" ");
 		}
@@ -1041,7 +1044,7 @@ var CHDtimeout, CHDreset, CHDresetting;
  */
 function chirpTimeout(){
 	CHDtimeout = setTimeout(function(){
-		notify("[+] Twitter stream Error! Will retry soon.");
+		notify("Twitter stream Error! Will retry soon.");
 		chirpFallback *= 2;
 		setTimeout(chirpConnect, chirpFallback*1000);
 		CHD.connected = false;
@@ -1070,7 +1073,7 @@ function chirpConnect(){
 	CHD.xhr.onreadystatechange = function(){
 		if(CHD.xhr.readyState == 2){
 			if(CHD.xhr.responseText.indexOf("UNAUTHORIZED") != -1){
-				notify("[+] Cannot login to user stream!");
+				notify("Cannot login to user stream!");
 				$("#refreshbut").parent().show();
 				twitterLoad();
 				CHD.xhr.abort();
@@ -1080,7 +1083,7 @@ function chirpConnect(){
 				CHD.connected=true;
 				CHDresetting=false;
 				clearTimeout(chirpClearFallback);
-				notify("[+] Connected to user stream");
+				notify("Connected to user stream");
 				CHDlastInd = 0;
 				chirpConnected = new Date().getTime();
 				$("#refreshbut").parent().hide();
@@ -1098,7 +1101,7 @@ function chirpConnect(){
 		}else if(CHD.xhr.readyState == 4){
 			CHD.connected = false;
 			if(CHDresetting) return;
-			notify("[+] Twitter stream Error! Will retry in "+chirpFallback+"s");
+			notify("Twitter stream Error! Will retry in "+chirpFallback+"s");
 			chirpFallback *= 2;
 			setTimeout(chirpConnect, chirpFallback*1000);
 		}

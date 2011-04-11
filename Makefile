@@ -16,8 +16,8 @@ options_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js
 options_file_list = twplus/twitter.js twplus/options.js
 options_EXTERNS = ${foreach extern,$(options_externs_list),--externs $(extern)}
 options_ARG = ${foreach file,$(options_file_list),--js $(file)}
-twplus/options.compiled.js: twplus/options.js
-	java -jar $(CC) $(FLAGS) $(options_EXTERNS) $(options_ARG) --js_output_file $@ 2>&1 \
+twplus/options.compiled.js.chrome twplus/options.compiled.js.mac: twplus/options.js
+	java -jar $(CC) --define TwPlusAPI=\"$(TARGET)\" $(FLAGS) $(options_EXTERNS) $(options_ARG) --js_output_file $@ 2>&1 \
 		| grep -E 'twitter\.js|options\.js|ERROR|Exception' || true
 
 twitica_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js \
@@ -32,7 +32,7 @@ twitica.compiled.js.chrome twitica.compiled.js.mac twitica.compiled.js.appengine
 		$(twitica_ARG) --js_output_file $@ 2>&1 \
 		| grep -E 'twitter\.js|imageloader\.js|twitica\.js|ERROR|Exception' || true
 
-$(TMPDIR): twplus/options.compiled.js
+$(TMPDIR):
 	rm -rf $(DIST) || true
 	mkdir $(DIST)
 	-cp -r * $(DIST)/
@@ -40,7 +40,9 @@ $(TMPDIR): twplus/options.compiled.js
 	rm -rf $(DIST)/extern
 	rm $(DIST)/{Makefile,{twitica,imageloader}.js,twplus/{options,twitter}.js,app.yaml}
 	mv $(DIST)/twitica.compiled.js.$(TARGET) $(DIST)/twitica.compiled.js
+	mv $(DIST)/twplus/options.compiled.js.$(TARGET) $(DIST)/twplus/options.compiled.js
 	rm $(DIST)/twitica.compiled.js.* || true
+	rm $(DIST)/twplus/options.compiled.js.* || true
 
 appengine: TARGET = appengine
 appengine: twitica.compiled.js.appengine
@@ -59,14 +61,14 @@ appengine-install: build-appengine
 
 build-mac: TARGET = mac
 build-mac: DIST = ../Twitica\ Mac/twitica/
-build-mac: | twitica.compiled.js.mac ../Twitica\ Mac/twitica/
+build-mac: | twplus/options.compiled.js.mac twitica.compiled.js.mac ../Twitica\ Mac/twitica/
 	-rm $(DIST)/manifest.json
 	-rm $(DIST)/twplus/{getPIN.js,handler.html}
 ../Twitica\ Mac/build/Release/Twitica\ Mac.app: build-mac
 	(cd ../Twitica\ Mac; xcodebuild)
 
 build-chrome: TARGET=chrome
-build-chrome: twplus/options.compiled.js twitica.compiled.js.chrome
+build-chrome: twplus/options.compiled.js.chrome twitica.compiled.js.chrome
 ../twitica-full.zip: TARGET = chrome
 ../twitica-full.zip: DIST = $(BUILDDIR)-chrome
 ../twitica-full.zip: | build-chrome /tmp/twiticabuild-chrome
@@ -74,7 +76,7 @@ build-chrome: twplus/options.compiled.js twitica.compiled.js.chrome
 	@echo "\n\nDon't forget to upload to Chrome Web Store!"
 
 buildclean:
-	rm twitica.compiled.js.* twplus/options.compiled.js || true
+	rm twitica.compiled.js.* twplus/options.compiled.js.* || true
 clean: buildclean
 	for i in $(TMPDIR); do \
 		rm -r $$i || true; \
