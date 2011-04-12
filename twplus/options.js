@@ -28,11 +28,11 @@ $(function(){
 				}
 				lsPoller = setInterval((function(data){
 					if(localStorage['_tmp_pin'] == "not loaded" && TwPlusAPI == "chrome") return;
-					else if(TwPlusAPI == "mac" && !frm.contentWindow.document.getElementById("oauth_pin")) return;
+					else if((TwPlusAPI == "appengine" || TwPlusAPI == "mac") && !frm.contentWindow.document.getElementById("oauth_pin")) return;
 					if(TwPlusAPI == "chrome"){
 						twAuth.close();
 						pin = localStorage['_tmp_pin'];
-					}else if(TwPlusAPI == "mac"){
+					}else if(TwPlusAPI == "mac" || TwPlusAPI == "appengine"){
 						pin = $.trim(frm.contentWindow.document.getElementById("oauth_pin").innerHTML);
 					}
 					clearTimeout(lsPoller);
@@ -49,7 +49,7 @@ $(function(){
 							]);
 							$("#login-status").html("Currently logged in as <b>"+localStorage['twitterUser']+"</b>. Please reopen the application.");
 							showLogout();
-							if(TwPlusAPI == "mac"){
+							if(TwPlusAPI == "mac" || TwPlusAPI == "appengine"){
 								window.location = "../index.html";
 							}
 						});

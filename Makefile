@@ -16,7 +16,7 @@ options_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js
 options_file_list = twplus/twitter.js twplus/options.js
 options_EXTERNS = ${foreach extern,$(options_externs_list),--externs $(extern)}
 options_ARG = ${foreach file,$(options_file_list),--js $(file)}
-twplus/options.compiled.js.chrome twplus/options.compiled.js.mac: twplus/options.js
+twplus/options.compiled.js.chrome twplus/options.compiled.js.mac twplus/options.compiled.js.appengine: twplus/options.js
 	java -jar $(CC) --define TwPlusAPI=\"$(TARGET)\" $(FLAGS) $(options_EXTERNS) $(options_ARG) --js_output_file $@ 2>&1 \
 		| grep -E 'twitter\.js|options\.js|ERROR|Exception' || true
 
@@ -32,9 +32,9 @@ twitica.compiled.js.chrome twitica.compiled.js.mac twitica.compiled.js.appengine
 		$(twitica_ARG) --js_output_file $@ 2>&1 \
 		| grep -E 'twitter\.js|imageloader\.js|twitica\.js|ERROR|Exception' || true
 
-$(TMPDIR):
+$(TMPDIR) copy-appengine:
 	rm -rf $(DIST) || true
-	mkdir $(DIST)
+	mkdir -p $(DIST)
 	-cp -r * $(DIST)/
 	rm -rf $(DIST)/twitter-text-js/{lib,pkg,test,.git,.gitignore,.gitmodules,README.md,Rakefile}
 	rm -rf $(DIST)/extern
@@ -45,16 +45,15 @@ $(TMPDIR):
 	rm $(DIST)/twplus/options.compiled.js.* || true
 
 appengine: TARGET = appengine
-appengine: twitica.compiled.js.appengine
+appengine: twitica.compiled.js.appengine twplus/options.compiled.js.appengine
 appengine-prep: appengine
 	-mkdir ${abspath $(DIST)/..}
 	cp app.yaml ${abspath $(DIST)/..}
 build-appengine: DIST = $(BUILDDIR)-appengine/twitica
 build-appengine: TARGET = appengine
-build-appengine: | appengine appengine-prep /tmp/twiticabuild-appengine
+build-appengine: | appengine appengine-prep copy-appengine
 	-rm $(DIST)/manifest.json
 	-rm $(DIST)/twplus/{getPIN.js,handler.html}
-	-rm $(DIST)/twplus/options.*
 appengine-install: DIST = $(BUILDDIR)-appengine/twitica
 appengine-install: build-appengine
 	$(APPCFG) update ${abspath $(DIST)/..}
@@ -84,7 +83,7 @@ clean: buildclean
 	rm -r ../Twitica\ Mac/twitica || true
 	rm ../twitica-full.zip || true
 .PHONY: all build debug build-chrome build-mac \
-	appengine appengine-prep build-appengine appengine-install \
+	appengine appengine-prep build-appengine copy-appengine appengine-install \
 	remove-extension-file buildclean clean remove-twplus-file
 # sometimes it ask for username
 .NOTPARALLEL: appengine-install

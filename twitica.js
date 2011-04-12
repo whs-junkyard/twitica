@@ -1283,7 +1283,7 @@ $(function(){
 	if(!Tw){
 		if(TwPlusAPI == "chrome"){
 			window.location = chrome.extension.getURL("twplus/options.html");
-		}else if(TwPlusAPI == "mac"){
+		}else if(TwPlusAPI == "mac" || TwPlusAPI == "appengine"){
 			window.location = "twplus/options.html";
 		}else{
 			alert("Not logged in -- backend fault!");
@@ -1307,7 +1307,7 @@ $(function(){
 		loadFollowing();
 	});
 	$("footer textarea").bind("keyup", function(e){
-		if(e.which != 9){
+		if(e.which != 9 && e.which != 16){
 			$(this).data("autocomplete", null);
 			$(this).data("autocomplete_u", null);
 		}
@@ -1611,7 +1611,14 @@ $(function(){
 			txt = $.trim($("footer textarea").val()).split(/([: ])/);
 			if(moreTab){
 				kwd = moreTab.kwd;
-				pos = moreTab.pos + 1;
+				if(e.shiftKey){
+					pos = moreTab.pos - 1;
+					if(pos<0){
+						notify("This is the first result");
+						pos=0;
+					}
+				}else
+					pos = moreTab.pos + 1;
 			}else{
 				kwd = txt[mentioning].substr(1);
 				pos = 0;
