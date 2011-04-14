@@ -15,9 +15,10 @@
 	<script src="query.js" type="text/javascript"></script>
 	<script src="twitter-text-js/twitter-text.js" type="text/javascript"></script>
 	<script src="shadowbox/shadowbox.js" type="text/javascript"></script>
-<!--
 	<script src="twplus/twitter.js"></script>
-	<script src="imageloader.js" type="text/javascript"></script>-->
+	<!--<script src="imageloader.js" type="text/javascript"></script>
+	<script src="twitica.js"></script>-->
+	<script type="text/javascript" src="twitica.compiled.js"></script>
 	<style type="text/css">
 /* externals */
 @import url(shadowbox/shadowbox.css);
@@ -238,6 +239,10 @@ article .noticebadge{
 	-webkit-box-shadow: black 0px 2px 15px;
 	z-index: 100000;
 }
+#help{
+	top: -100%;
+	-webkit-transition: top ease-out 750ms;
+}
 #help table{
 	width: 90%;
 	margin: auto;
@@ -255,7 +260,6 @@ article .noticebadge{
 	-webkit-border-radius: 25px;
 }
 	</style>
-	<script type="text/javascript" src="twitica.compiled.js"></script>
 </head>
 <body>
 <div id="notify">
@@ -286,6 +290,7 @@ article .noticebadge{
 		<tr><th>Ctrl+R</th><td>Refresh (only when not streaming)</td></tr>
 		<tr><th>Ctrl+E</th><td>Retweet</td></tr>
 		<tr><th>Ctrl+Y</th><td>Reply</td></tr>
+		<tr><th>Ctrl+B</th><td>Favorite</td></tr>
 		<tr><th>Ctrl+S</th><td>Shorten URLs</td></tr>
 		<tr><th>Ctrl+F</th><td>Search up using text in box</td></tr>
 		<tr><th>Ctrl+G</th><td>Search down using text in box</td></tr>
@@ -293,6 +298,7 @@ article .noticebadge{
 		<tr><th>Ctrl+Z</th><td>Retry failed tweet</td></tr>
 		<tr><th>Ctrl+M</th><td>Mention timeline</td></tr>
 		<tr><th>Ctrl+.</th><td>DM timeline</td></tr>
+		<tr><th>Ctrl+Shift+F</th><td>Favorites timeline</td></tr>
 		<tr><th>Enter</th><td>Tweet/Open first link in tweet</td></tr>
 		<tr><th>Tab</th><td>Autocomplete commands/names (hold to rotate)</td></tr>
 	</table>

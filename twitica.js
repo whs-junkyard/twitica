@@ -37,6 +37,10 @@ var in_reply_to;
 var refocus_bounce;
 /** @type {boolean} */
 var quoteRT = false;
+/** @const */
+var starIcon = "<span title='Favorited' style='color:yellow; -webkit-text-stroke: #555 1px;' class='staricon'>★</span>";
+/** @type {boolean} */
+var isFocusing;
 google.load("earth", "1");
 
 /**
@@ -115,6 +119,8 @@ function twcom(what, callback){
 		if(!what.data.timeline) what.data.timeline = "home";
 		if(what.data.timeline == "dm"){
 			return Tw.get("direct_messages", what.param, callback);
+		}else if(what.data.timeline == "favorites"){
+			return Tw.get("favorites", what.param, callback);
 		}else{
 			if(what.data.timeline == "replies") what.data.timeline = "mentions";
 			if(["mentions", "retweets_of_me", "retweeted_to_me", "retweeted_by_me"].indexOf(what.data.timeline) != -1)
@@ -181,6 +187,10 @@ function twcom(what, callback){
 		return Tw.get("statuses/friends", what.data, callback);
 	}else if(what.type == "refocus" && TwPlusAPI == "mac"){
 		return twmac.refocus(what.count, what.left, what.mention);
+	}else if(what.type == "tw.fav"){
+		return Tw.post("favorites/create/"+what.id, null, callback);
+	}else if(what.type == "tw.unfav"){
+		return Tw.post("favorites/destroy/"+what.id, null, callback);
 	}else if(TwPlusAPI == "chrome"){
 		id=new Date().getTime();
 		_twcom_callbacks[id] = callback || function(){};
@@ -284,15 +294,25 @@ function isBlocked(user, src, txt, following){
  * @see getCurrent
  */
 function refocus(){
-	title = document.title.replace(/^\(([\-0-9 !]+)\) /, "")
-	if(!konami){
-		count = curPos+1;
-		left = lastId-count;
+	title = document.title.replace(/^\(([\-0-9 !]+)\) /, "");
+	if(unreadCount[0] <= 0){
+		if(!konami){
+			count = curPos+1;
+			left = lastId-count;
+		}else{
+			count = lastId-curPos;
+			left = count-1;
+		}
+		mentionCnt = $("#body article:gt("+curPos+")").filter(".replied").length;
 	}else{
-		count = lastId-curPos;
-		left = count-1;
+		left = unreadCount[0];
+		mentionCnt = unreadCount[1];
+		if(!konami){
+			count = curPos+1;
+		}else{
+			count = lastId-curPos;
+		}
 	}
-	mentionCnt = $("#body article:gt("+curPos+")").filter(".replied").length;
 	if(left){
 		prefix = "("
 		if(mentionCnt > 0){
@@ -387,6 +407,7 @@ function scroll(a, ref){
 	}else{
 		if(ref !== false) refocus();
 	}
+	if(isFocusing) unreadCount=[0,0];
 }
 /**
  * Send message
@@ -410,7 +431,8 @@ function sendTweet(msg){
 		}
 		failtweet = null;
 		notify("<div style='color: #afa'>Success! Your tweet have been posted</div>");
-		addTweet(o);
+		if(["dm", "user"].indexOf($.query.get("timeline")) == -1)
+			addTweet(o);
 	};
 	if(SET['nogeo']){
 		// hey, put it out!
@@ -522,7 +544,8 @@ function processMsg(d, kind){
 			}
 		}));
 	lock="";
-	if(d['user']['protected']) lock = "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'>";
+	if(d['user']['protected']) lock += "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'> ";
+	if(d['favorited']) lock += starIcon+" ";
 	if(d['rtdata']) info.push("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
 	
 	avatarLeft = '<td class="avatarbox"><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td>';
@@ -534,7 +557,7 @@ function processMsg(d, kind){
 		tdClass = "leftaligned"
 	}
 	dent = $('<article><table><tr>'+avatarLeft+'<td class="noticetdin '+tdClass+'">'
-		+ '<div>'+lock+'<span class="user" title="'+d['user']['name']+' ('+kind+')">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
+		+ '<div><span class="tweeticon">'+lock+'</span><span class="user" title="'+d['user']['name']+' ('+kind+')">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
 		+ '</td>'+avatarRight+'</tr></table></article>'
 	);
 	$(".noticebody", dent).append(d['html']);
@@ -658,6 +681,8 @@ function processMsg(d, kind){
 	return dent;
 }
 
+/** @type {Array.<number>} */
+var unreadCount=[0,0];
 /**
  * Add message to timeline
  * Use addTweet instead or write your own backend
@@ -777,7 +802,9 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 			comnotify("@"+d['user']['screen_name'], d['text'], d['user']['profile_image_url']);
 		}
 		dent.addClass("replied");
+		if(!isFocusing) unreadCount[1]++;
 	}
+	if(!isFocusing) unreadCount[0]++;
 	lastId++;
 }
 /**
@@ -893,6 +920,38 @@ function repeatCur(){
 		twcom({type: "tw.retweet", data: meta}, cb);
 	}
 }
+/**
+ * Favorite current tweet
+ */
+function favCur(){
+	if($.query.get("timeline") == "dm"){
+		return notify("Not applicable.");
+	}
+	cur = getCurrent();
+	data = cur.data("data");
+	function updateDB(d){
+		// add/remove star
+		if(d['favorited']){
+			$(".tweeticon",  cur).append(starIcon);
+			notify("Favorited");
+		}else{
+			$(".staricon", cur).remove();
+			notify("Unfavorited");
+		}
+		DB.transaction(function(x){
+			// scrollback is not possible to update
+			x.executeSql("UPDATE notices SET data=? WHERE id=?", [JSON.stringify(d), d['id_str']]);
+		});
+		cur.data("data", d);
+	}
+	if(data['favorited']){
+		notify("Unfavoriting...");
+		twcom({type: "tw.unfav", id: data['id_str']}, updateDB);
+	}else{
+		notify("Favoriting...");
+		twcom({type: "tw.fav", id: data['id_str']}, updateDB);
+	}
+}
 
 // Shhh..
 /**
@@ -930,8 +989,6 @@ function twitterLoad(periodical, callback){
 	twFirstLoadDone = true;
 	clearTimeout(twloadtimeout);
 	notify("Refreshing tweets...");
-	sendSince = "&since_id=" + last_twitter_id;
-	if(last_twitter_id == 0) sendSince=""; // user timeline do not like this
 	loadCb=function(d){
 		notify("Twitter loaded...");
 		if(d['error'] || d['errors']){
@@ -947,9 +1004,9 @@ function twitterLoad(periodical, callback){
 			setTimeout(scroll, 1000, lastId - curPos);
 		}
 	};
-	params = {user: $.query.get("user"), since_id: last_twitter_id || 0}
+	params = {user: $.query.get("user"), since_id: last_twitter_id || "0"}
 	if(!params.user) delete params.user;
-	if(!params.since_id) delete params.since_id;
+	if(params.since_id === "0") delete params.since_id;
 	twcom({type: "tw.refresh", data: {timeline: $.query.get("timeline")}, param: params}, loadCb);
 	if(!periodical && callback) callback();
 	if(periodical)
@@ -1268,7 +1325,7 @@ $(function(){
 	if(!localStorage['config'])
 		localStorage['config'] = '{"nogeo": true}';
 	SET = JSON.parse(localStorage['config']);
-	$("#dropMe,#help").hide();
+	$("#dropMe").hide();
 	if(TwPlusAPI == "chrome" && false){
 		$("#twiticom").get(0).onmouseup = function(){
 			d=JSON.parse(decodeURIComponent($(this).html()));
@@ -1300,6 +1357,8 @@ $(function(){
 			document.title = "Direct Messages to @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}else if($.query.get("timeline") == "user"){
 			document.title = "@"+$.query.get("user")+" from @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
+		}else if($.query.get("timeline") == "favorites"){
+			document.title = "Favorites of @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}else{
 			document.title = "@"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}
@@ -1329,7 +1388,7 @@ $(function(){
 	
 	if(navigator.userAgent.match("Macintosh")){
 		$("#help table th").html(function(i, x){
-			return x.replace("Ctrl+", "⌘");
+			return x.replace("Ctrl+Shift+", "⇧⌘").replace("Ctrl+", "⌘");
 		});
 		$("footer textarea").attr("placeholder", "Press ⌘H for help.");
 	}
@@ -1350,11 +1409,11 @@ $(function(){
 	    return array;
 	}
 	var tipList = shuffle([
-		"This application have an easter egg!",
+		"This application have easter eggs!",
 		"/bgimg might slow down your computer",
 		"Read changelogs at #TwiticaDesktop",
-		"Click a user's avatar to open their timeline",
-		"Ctrl/Cmd+Click on an image link to open in tab",
+		"Click user's avatar to open their timeline",
+		"Ctrl/Cmd+Click on image link to open in tab",
 		"Feature request and bug report at @manatsawin",
 		"Press on <img src='marker.png' /> to view map",
 		"Press Ctrl/Cmd+y two times to reply to all"
@@ -1401,7 +1460,10 @@ $(function(){
 		replyCur();
 		return false;
 	})
+	$(window).focus(function(){isFocusing=true;});
+	$(window).blur(function(){isFocusing=false;});
 	$(window).keydown(function(e){
+		isFocusing = true;
 		if(e.target.type == "text" || e.target.type == "password") return;
 		kmul = konami ? -1 : 1;
 		if($("footer textarea").val().length == 0 || e.which == 33 || e.which == 34){
@@ -1462,7 +1524,7 @@ $(function(){
 					twitterLoad();
 				}
 				e.preventDefault();
-			}else if(e.which == 70){
+			}else if(e.which == 70 && !e.shiftKey){
 				search(true);
 				e.preventDefault();
 			}else if(e.which == 71){
@@ -1472,7 +1534,11 @@ $(function(){
 				window.open("?timeline=replies", 'repliestimeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
 				e.preventDefault();
 			}else if(e.which == 72){
-				$("#help").fadeToggle();
+				if($("#help").css("top") == "-100%"){
+					$("#help").css("top", "5%");
+				}else{
+					$("#help").css("top", "-100%");
+				}
 				e.preventDefault();
 			}else if(e.which == 83){
 				urls = $("footer textarea").val().match(/(https?:\/\/|www\.)(\S*\w+)+/g);
@@ -1496,7 +1562,13 @@ $(function(){
 				$("footer textarea").val(failtweet[0]);
 				e.preventDefault();
 			}else if(e.which == 190){
-				window.open("?timeline=dm", 'repliestimeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+				window.open("?timeline=dm", 'dmtimeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+				e.preventDefault();
+			}else if(e.which == 70 && e.shiftKey){
+				window.open("?timeline=favorites", 'favtimeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+				e.preventDefault();
+			}else if(e.which == 66){
+				favCur();
 				e.preventDefault();
 			}
 		}
@@ -1737,6 +1809,7 @@ $(function(){
 					if(d['kind'] == "twitter") addTweet(obj, false, false, false);
 					last_twitter_id = obj['id_str'];
 				}
+				unreadCount = [0,0];
 				scroll($("#body article").length);
 				if(!$.query.get("nostream") && navigator.userAgent.indexOf("Android") == -1){ // Android runs buggy with chirp
 					twitterLoad(false, chirp); // User Stream Suggestions: Connections>Churn>Delay opening a stream in case user quit quickly
