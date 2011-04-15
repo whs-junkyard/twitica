@@ -449,11 +449,29 @@ function sendTweet(msg){
 	in_reply_to = null;
 }
 /**
+ * Color the nick
+ * @see http://xchat.sourcearchive.com/documentation/2.4.1-0.1/inbound_8c-source.html
+ * @param {string} screen_name
+ * @return {string} color code with hash or color name
+ */
+function color_of(name){
+	/** @type {number} */ var sum = 0;
+	/** @type {number} */ var i=0;
+	/** @const */ var rcolors = [
+		"#ff6666", "#ffff66", "#66ff66", "#66ffff", "#ffcc66", "#ccff66", "#66ffcc", "#66ccff"
+	];
+	while (name[i]){
+		sum += name[i++].charCodeAt(0);
+	}
+	sum %= rcolors.length;
+	return rcolors[sum];
+}
+/**
  * Draw and process a message
  * @private
  *
  * @param {Object} The message, as returned from Twitter API
- * @param {String} Origin ("twitter" only)
+ * @param {string} Origin ("twitter" only)
  */
 function processMsg(d, kind){
 	// Handle RT nicely
@@ -495,6 +513,11 @@ function processMsg(d, kind){
 		times = time.getDate() + "/" + time.getMonth() + "/" + (1900 + time.getYear()) + " " + times;
 	info.unshift("<time datetime='"+d['created_at']+"' pubdate><a href='"+d['url']+"'>"+times+"</a></time>");
 	
+	if(SET['usercolor'] && false){
+		$(".username", d['html']).each(function(){
+			this.style.color = color_of(this.innerHTML);
+		});
+	}
 	if(d['in_reply_to_status_id']){
 		if($(".username:eq(0)", d['html']).html() == d['in_reply_to_screen_name']){
 			$(".username:eq(0)", d['html']).addClass("noticebadge");
@@ -515,6 +538,9 @@ function processMsg(d, kind){
 				else scroll(theDiv.data("id") - curPos);
 				return false;
 			});
+			if(SET['usercolor'] && false){
+				irp.css("color", color_of(d['in_reply_to_screen_name']));
+			}
 			info.push(irp);
 		}
 	}
@@ -547,7 +573,13 @@ function processMsg(d, kind){
 	lock="";
 	if(d['user']['protected']) lock += "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'> ";
 	if(d['favorited']) lock += starIcon+" ";
-	if(d['rtdata']) info.push("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
+	if(d['rtdata']){
+		rtele = $("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
+		if(SET['usercolor']){
+			rtele.css("color", color_of(d['rtdata']['user']['screen_name']));
+		}
+		info.push(rtele);
+	}
 	
 	avatarLeft = '<td class="avatarbox"><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td>';
 	avatarRight = "";
@@ -561,8 +593,8 @@ function processMsg(d, kind){
 		+ '<div><span class="tweeticon">'+lock+'</span><span class="user" title="'+d['user']['name']+'">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
 		+ '</td>'+avatarRight+'</tr></table></article>'
 	);
-	// nice but need work
-	//$(".user", dent).css("color", "#"+d['user']['profile_sidebar_fill_color']);
+	if(SET['usercolor'])
+		$(".user", dent).css("color", color_of(d['user']['screen_name']));
 	$(".noticebody", dent).append(d['html']);
 	$("a>.avatar", dent).click(function(e){
 		if(navigator.userAgent.indexOf("Android") == -1 && !e.ctrlKey){
@@ -886,7 +918,7 @@ function replyCur(){
 				.data("mention", twdata['user']['screen_name']);
 		}
 		ft.data("elem", getCurrent());
-		ft['keyup'](); // fuck closure compiler
+		ft.keyup();
 	}
 	setCaretTo(ft.get(0), ft.val().length);
 	$(".user").removeClass("mentioned");
@@ -1505,7 +1537,7 @@ $(function(){
 		if(e.altKey && e.which == 115){
 			quoteRT = !quoteRT
 			if(quoteRT) wrd = "ON"; else wrd = "OFF";
-			notify("Quote RT toggled <strong>"+wrd+"</strong>");
+			notify("Quote RT <strong>"+wrd+"</strong>");
 			e.preventDefault();
 			return;
 		}
@@ -1579,7 +1611,7 @@ $(function(){
 		if(e.which == 9){
 			var mentioning = getMentioning();
 		}
-		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside"].sort();
+		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor"].sort();
 		if(TwPlusAPI != "chrome"){
 			cmds.remove(cmds.indexOf("ytplaying"));
 		}
@@ -1610,7 +1642,7 @@ $(function(){
 				notify("Notification time set to "+SET['notifyDuration']);
 				$("footer textarea").val("")
 				return false;
-			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside)(?: +|$)/)){
+			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor)(?: +|$)/)){
 				toggleSet  = toggleSet[1];
 				SET[toggleSet] = !SET[toggleSet]
 				localStorage['config'] = JSON.stringify(SET);
@@ -1619,7 +1651,8 @@ $(function(){
 					"nothai": "No Thai input",
 					"autoscroll": "Auto scrolling",
 					"nogeo": "Disable geolocation",
-					"rightside": "Own avatar at right"
+					"rightside": "Own avatar at right",
+					"usercolor": "Colored nick"
 				}
 				if(SET[toggleSet] == true) notify(setName[toggleSet]+" <strong>ON</strong>");
 				else notify(setName[toggleSet]+" <strong>OFF</strong>");
