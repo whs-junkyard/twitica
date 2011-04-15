@@ -1327,7 +1327,7 @@ $(function(){
 	if(!localStorage['config'])
 		localStorage['config'] = '{"nogeo": true}';
 	SET = JSON.parse(localStorage['config']);
-	$("#dropMe").hide();
+	$("#dropMe,#help").hide();
 	if(TwPlusAPI == "chrome" && false){
 		$("#twiticom").get(0).onmouseup = function(){
 			d=JSON.parse(decodeURIComponent($(this).html()));
@@ -1537,9 +1537,9 @@ $(function(){
 				e.preventDefault();
 			}else if(e.which == 72){
 				if($("#help").css("top") == "-100%"){
-					$("#help").css("top", "5%");
+					$("#help").css("top", "5%").show();
 				}else{
-					$("#help").css("top", "-100%");
+					$("#help").css("top", "-100%").hide();
 				}
 				e.preventDefault();
 			}else if(e.which == 83){
