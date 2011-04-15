@@ -558,9 +558,11 @@ function processMsg(d, kind){
 		tdClass = "leftaligned"
 	}
 	dent = $('<article><table><tr>'+avatarLeft+'<td class="noticetdin '+tdClass+'">'
-		+ '<div><span class="tweeticon">'+lock+'</span><span class="user" title="'+d['user']['name']+' ('+kind+')">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
+		+ '<div><span class="tweeticon">'+lock+'</span><span class="user" title="'+d['user']['name']+'">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
 		+ '</td>'+avatarRight+'</tr></table></article>'
 	);
+	// nice but need work
+	//$(".user", dent).css("color", "#"+d['user']['profile_sidebar_fill_color']);
 	$(".noticebody", dent).append(d['html']);
 	$("a>.avatar", dent).click(function(e){
 		if(navigator.userAgent.indexOf("Android") == -1 && !e.ctrlKey){
