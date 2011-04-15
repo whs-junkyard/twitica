@@ -295,6 +295,7 @@ function isBlocked(user, src, txt, following){
  */
 function refocus(){
 	title = document.title.replace(/^\(([\-0-9 !]+)\) /, "");
+	if(isFocusing) unreadCount=[0,0];
 	if(unreadCount[0] <= 0){
 		if(!konami){
 			count = curPos+1;
@@ -407,7 +408,7 @@ function scroll(a, ref){
 	}else{
 		if(ref !== false) refocus();
 	}
-	if(isFocusing) unreadCount=[0,0];
+	//if(isFocusing) unreadCount=[0,0];
 }
 /**
  * Send message
@@ -805,6 +806,7 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 		if(!isFocusing) unreadCount[1]++;
 	}
 	if(!isFocusing) unreadCount[0]++;
+	else unreadCount = [0,0];
 	lastId++;
 }
 /**
@@ -1498,7 +1500,7 @@ $(function(){
 			}
 		}
 		//shh
-		if(e.ctrlKey && e.altKey && e.which == 46){
+		if(e.altKey && e.which == 115){
 			quoteRT = !quoteRT
 			if(quoteRT) wrd = "ON"; else wrd = "OFF";
 			notify("Quote RT toggled <strong>"+wrd+"</strong>");
