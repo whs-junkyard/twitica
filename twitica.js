@@ -296,7 +296,7 @@ function isBlocked(user, src, txt, following){
 function refocus(){
 	title = document.title.replace(/^\(([\-0-9 !]+)\) /, "");
 	if(isFocusing) unreadCount=[0,0];
-	if(unreadCount[0] <= 0){
+	if(unreadCount[0] <= 0 || true){
 		if(!konami){
 			count = curPos+1;
 			left = lastId-count;
@@ -1577,7 +1577,7 @@ $(function(){
 				}
 				e.preventDefault();
 			}else if(e.which == 83){
-				urls = $("footer textarea").val().match(/(https?:\/\/|www\.)(\S*\w+)+/g);
+				urls = $("footer textarea").val().match(twttr['txt']['regexen']['validUrl']);
 				urls = $.unique(urls);
 				notify("Shortening URLs");
 				urls.forEach(function(me){
