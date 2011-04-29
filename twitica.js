@@ -1571,9 +1571,15 @@ $(function(){
 				e.preventDefault();
 			}else if(e.which == 72){
 				if($("#help").css("top") == "-100%"){
-					$("#help").css("top", "5%").show();
+					$("#help").show()
+					setTimeout(function(){
+						$("#help").css("top", "5%")
+					}, 50);
 				}else{
-					$("#help").css("top", "-100%").hide();
+					$("#help").css("top", "-100%");
+					setTimeout(function(){
+						$("#help").hide();
+					}, 750);
 				}
 				e.preventDefault();
 			}else if(e.which == 83){
