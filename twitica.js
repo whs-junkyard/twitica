@@ -38,7 +38,7 @@ var refocus_bounce;
 /** @type {boolean} */
 var quoteRT = false;
 /** @const */
-var starIcon = "<span title='Favorited' style='color:yellow; -webkit-text-stroke: #555 1px;' class='staricon'>★</span>";
+var starIcon = "<span title='Favorited' style='color:yellow; -webkit-text-stroke: #555 1px;' class='staricon'>★ </span>";
 /** @type {boolean} */
 var isFocusing;
 google.load("earth", "1");
@@ -572,7 +572,7 @@ function processMsg(d, kind){
 		}));
 	lock="";
 	if(d['user']['protected']) lock += "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'> ";
-	if(d['favorited']) lock += starIcon+" ";
+	if(d['favorited']) lock += starIcon;
 	if(d['rtdata']){
 		rtele = $("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
 		if(SET['usercolor']){
@@ -968,6 +968,7 @@ function favCur(){
 	function updateDB(d){
 		// add/remove star
 		if(d['favorited']){
+			$(".staricon", cur).remove();
 			$(".tweeticon",  cur).append(starIcon);
 			notify("Favorited");
 		}else{
