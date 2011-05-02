@@ -41,6 +41,8 @@ var quoteRT = false;
 var starIcon = "<span title='Favorited' style='color:yellow; -webkit-text-stroke: #555 1px;' class='staricon'>★ </span>";
 /** @type {boolean} */
 var isFocusing;
+/** @type {number} */
+var startTime = new Date().getTime()
 google.load("earth", "1");
 
 /**
@@ -1453,7 +1455,8 @@ $(function(){
 		"Ctrl/Cmd+Click on image link to open in tab",
 		"Feature request and bug report at @manatsawin",
 		"Press on <img src='marker.png' /> to view map",
-		"Press Ctrl/Cmd+y two times to reply to all"
+		"Press Ctrl/Cmd+y two times to reply to all",
+		"Help improve Twitica Desktop by using /report your comment"
 	]);
 	function updateTOTD(){
 		tip = tipList.shift();
@@ -1618,7 +1621,7 @@ $(function(){
 		if(e.which == 9){
 			var mentioning = getMentioning();
 		}
-		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor"].sort();
+		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor", "report"].sort();
 		if(TwPlusAPI != "chrome"){
 			cmds.remove(cmds.indexOf("ytplaying"));
 		}
@@ -1649,6 +1652,29 @@ $(function(){
 				notify("Notification time set to "+SET['notifyDuration']);
 				$("footer textarea").val("")
 				return false;
+			}else if($.trim(txt).match(/^\/report/)){
+				arg = $.trim(txt).split(" ").slice(1).join(" ");
+				data = {
+					'settings': SET,
+					'user': accInfo['twitter']['username'],
+					'startTime': startTime,
+					'time': new Date().getTime(),
+					'uptime': new Date().getTime() - startTime,
+					'tweets': lastId,
+					'arg': arg,
+					'version': '1.15.7',
+					'api': TwPlusAPI
+				}
+				console.log(data, "/report");
+				data = JSON.stringify(data);
+				sig = hex_sha1(data);
+				notify("Sending report...");
+				$.getJSON("http://t.whsgroup.ath.cx/twreg.php?callback=?", {"data": data, "signature": sig}, function(d){
+					notify(d['out']);
+				})
+				$("footer textarea").val("");
+				e.preventDefault();
+				return;
 			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor)(?: +|$)/)){
 				toggleSet  = toggleSet[1];
 				SET[toggleSet] = !SET[toggleSet]
