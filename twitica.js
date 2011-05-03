@@ -532,14 +532,8 @@ function processMsg(d, kind){
 			});
 			$(".username:eq(0)", d['html']).attr("href", d['in_reply_to_status_url']);
 		}else{
-			irp = $("<span class='noticebadge'><a href='"+d['in_reply_to_status_url']+"'>» "+d['in_reply_to_screen_name']+"</a></span>");
-			irp.data("id", d['in_reply_to_status_id_str']).click(function(e){
-				if(e.ctrlKey) return true;
-				theDiv = dataDiv[$(this).data("id")];
-				if(!theDiv) return true;
-				else scroll(theDiv.data("id") - curPos);
-				return false;
-			});
+			irp = $("<span class='noticebadge irp'><a href='"+d['in_reply_to_status_url']+"'>» "+d['in_reply_to_screen_name']+"</a></span>");
+			irp.data("id", d['in_reply_to_status_id_str'])
 			if(SET['usercolor'] && false){
 				irp.css("color", color_of(d['in_reply_to_screen_name']));
 			}
@@ -594,16 +588,11 @@ function processMsg(d, kind){
 	dent = $('<article><table><tr>'+avatarLeft+'<td class="noticetdin '+tdClass+'">'
 		+ '<div><span class="tweeticon">'+lock+'</span><span class="user" title="'+d['user']['name']+'">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
 		+ '</td>'+avatarRight+'</tr></table></article>'
-	);
+	).data("data", d);
 	if(SET['usercolor'])
 		$(".user", dent).css("color", color_of(d['user']['screen_name']));
 	$(".noticebody", dent).append(d['html']);
-	$("a>.avatar", dent).click(function(e){
-		if(navigator.userAgent.indexOf("Android") == -1 && !e.ctrlKey){
-			window.open("?timeline=user&user="+d['user']['screen_name'], d['user']['id']+'timeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
-			return false;
-		}
-	});
+	
 
 	// have to do this after the dent have been created
 	if(d['in_reply_to_status_id']){
@@ -657,63 +646,6 @@ function processMsg(d, kind){
 		$(".info", dent).append("<span> </span>")
 	});
 
-	/**
-	 * Check whether the link should be handled on Twitica or not
-	 * @param {Event}
-	 * @returns {Boolean} True if the event can be processed on Twitica
-	 */
-	function linkCheck(e){
-		if(e.ctrlKey || e.metaKey) return false;
-		// check for Android, and then do not allow cross-tweet link click
-		// how this is Twitica "Desktop" when it support Android?
-		if(navigator.userAgent.indexOf("Android") != -1){
-			if(!e.data.dent.hasClass("selected")){
-				// instead, select this tweet
-				e.data.dent.click(); // hack!!
-				return false;
-			}
-		}
-		return true;
-	}
-	$("a", dent).each(function(){
-		if(this.href.match(/\.(png|jp[e]{0,1}g|gif|swf|flv)$/)){
-			$(this).bind("click", function(e){
-				if(linkCheck(e) == false) return true;
-				player = this.href;
-				if(player.indexOf(/\.(png|jp[e]{0,1}g|gif)$/) != -1) player = "img";
-				else if(player.indexOf(/\.swf$/) != -1) player = "swf";
-				else if(player.indexOf(/\.flv$/) != -1) player = "flv";
-				else player = "iframe";
-				Shadowbox.open({
-					content: this.href,
-					player: player,
-					title: "Attachment",
-					"width": $(window).width() * 6/7, "height": $(window).height() * 3/4
-				});
-				e.preventDefault();
-			}).data("click", true);
-		/*}else if(this.href.indexOf("http://yfrog.com/") == 0 || this.href.indexOf("http://twitpic.com/") == 0 || this.href.indexOf("http://www.pg.in.th/p/") == 0 || this.href.indexOf("http://twitgoo.com/") == 0 || this.href.indexOf("http://tweetphoto.com/") == 0 || this.href.indexOf("http://upic.me/") == 0){
-			$(this).bind("click", {dent:dent}, function(e){
-				if(linkCheck(e) == false) return false;
-				Shadowbox.open({
-					content: $(this).attr("title"),
-					player: "iframe",
-					title: "Attachment",
-					"width": $(window).width() * 6/7, "height": $(window).height() * 3/4,
-				});
-				e.preventDefault();
-			}).data("click", true);*/
-		}else if(ImageLoader['getProvider'](this.href)){
-			$(this).bind("click", function(e){
-				if(linkCheck(e) == false) return true;
-				notify("Loading image...");
-				ImageLoader['viewer']['shadowbox'](this.href);
-				e.preventDefault();
-			}).data("click", true);
-		}else{
-			$(this).bind("click", {dent:dent}, linkCheck);
-		}
-	});
 	$("a", dent).attr("target", "_blank");
 	return dent;
 }
@@ -778,39 +710,7 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 		dent.css("margin-left", -1*$(window).width());
 
 	dataDiv[d['id_str']] = dent;	
-	dent.appendTo("#body").addClass(kind).click(function(){
-		curPos = $(this).data("id");
-		refocus();
-	}).focus(function(){
-		$(".noticeMeta").slideUp(100, function(){$(this).remove();});
-		metad = [];
-		d = $(this).data("data");
-		kind = $(this).data("type");
-		if(dentsRendered.indexOf(d['in_reply_to_status_id_str']) == -1 && $(this).data("replystatus")){
-			irp = processMsg($(this).data("replystatus"), kind);
-			offset = $(this).offset();
-			irpBox = $("<div class='noticeMeta'></div>").append(irp).appendTo("body");
-			// since we cannot get height of element not rendered, we need to flash it
-			irpBox.css({
-				"position": "absolute",
-				"top": offset.top - ($(this).height()/2) - irpBox.height() - 3,
-				"left": offset.left
-			}).hide().slideDown(250);
-		}
-		if(metad.length > 0){
-			offset = $(this).offset();
-			noticeMetad = $("<div class='noticeMeta'></div>").css({
-				"position": "absolute",
-				"top": offset.top + $(this).height() + 5,
-				"left": offset.left
-			}).appendTo("body").hide().slideDown(250);
-			$.each(metad, function(indexNotUsed, theMetad){
-				theMetad.appendTo(noticeMetad);
-			});
-		}
-	}).blur(function(){
-		//$(".noticeMeta").slideUp(100, function(){$(this).remove();}); // buggy, removed
-	}).data("type", kind).data("data", d).data("id", lastId);
+	dent.appendTo("#body").addClass(kind).data("type", kind).data("id", lastId);
 	dentsElement[lastId] = dent;
 	if(eff){
 		dent.hide().slideDown(1000);
@@ -1050,6 +950,21 @@ function twitterLoad(periodical, callback){
 	if(!periodical && callback) callback();
 	if(periodical)
 		twloadtimeout = setTimeout(twitterLoad, 60000*3);
+}
+window['loadTestData'] = function(url){
+	notify("Loading test data...")
+	$.getJSON("http://t.whsgroup.ath.cx/"+url, function(d){
+		t = new Date().getTime();
+		notify("Test data loaded!");
+		d = d.reverse();
+		$.each(d, function(k,v){addTweet(v);});
+		refocus();
+		if(curPos != lastId && SET['autoscroll']){
+			setTimeout(scroll, 1000, lastId - curPos);
+		}
+		console.log(new Date().getTime() - t, "loadtime");
+		notify("Parsed in "+(new Date().getTime() - t).toString())
+	})
 }
 
 var CHDfriends;
@@ -1821,6 +1736,85 @@ $(function(){
 			setTimeout(refocus, 3000);
 		}, 1);
 	});
+	
+	/**
+	 * Check whether the link should be handled on Twitica or not
+	 * @param {Event}
+	 * @returns {Boolean} True if the event can be processed on Twitica
+	 */
+	function linkCheck(e){
+		if(e.ctrlKey || e.metaKey) return false;
+		return true;
+	}
+	
+	// Delegations
+	$("#body").delegate("a>.avatar", "click", function(e){
+		d = $(this).closest("article").data("data");
+		console.log($(this).closest("article"));
+		if(!d) return true;
+		window.open("?timeline=user&user="+d['user']['screen_name'], d['user']['id']+'timeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+		e.preventDefault();
+		return false;
+	}).delegate("article .irp", "click", function(e){
+		if(e.ctrlKey) return true;
+		theDiv = dataDiv[$(this).data("id")];
+		if(!theDiv) return true;
+		else scroll(theDiv.data("id") - curPos);
+		return false;
+	}).delegate("article a", "click", function(e){
+		if(linkCheck(e) == false) return true;
+		if(this.href.match(/\.(png|jp[e]{0,1}g|gif|swf|flv)$/i)){
+			player = this.href;
+			if(player.indexOf(/\.(png|jp[e]{0,1}g|gif)$/i) != -1) player = "img";
+			else if(player.indexOf(/\.swf$/i) != -1) player = "swf";
+			else if(player.indexOf(/\.flv$/i) != -1) player = "flv";
+			else player = "iframe";
+			Shadowbox.open({
+				content: this.href,
+				player: player,
+				title: "Attachment",
+				"width": $(window).width() * 6/7, "height": $(window).height() * 3/4
+			});
+			e.preventDefault();
+		}else if(ImageLoader['getProvider'](this.href)){
+			if(linkCheck(e) == false) return true;
+			notify("Loading image...");
+			ImageLoader['viewer']['shadowbox'](this.href);
+			e.preventDefault();
+		}
+	}).delegate("article", "click", function(e){
+		curPos = $(this).data("id");
+		refocus();
+	}).delegate("article", "focus", function(e){
+		$(".noticeMeta").slideUp(100, function(){$(this).remove();});
+		metad = [];
+		d = $(this).data("data");
+		kind = $(this).data("type");
+		if(dentsRendered.indexOf(d['in_reply_to_status_id_str']) == -1 && $(this).data("replystatus")){
+			irp = processMsg($(this).data("replystatus"), kind);
+			offset = $(this).offset();
+			irpBox = $("<div class='noticeMeta'></div>").append(irp).appendTo("body");
+			// since we cannot get height of element not rendered, we need to flash it
+			irpBox.css({
+				"position": "absolute",
+				"top": offset.top - ($(this).height()/2) - irpBox.height() - 3,
+				"left": offset.left
+			}).hide().slideDown(250);
+		}
+		if(metad.length > 0){
+			offset = $(this).offset();
+			noticeMetad = $("<div class='noticeMeta'></div>").css({
+				"position": "absolute",
+				"top": offset.top + $(this).height() + 5,
+				"left": offset.left
+			}).appendTo("body").hide().slideDown(250);
+			$.each(metad, function(indexNotUsed, theMetad){
+				theMetad.appendTo(noticeMetad);
+			});
+		}
+	});
+	
+	
 	// HTML5 drop file upload
 	if((new XMLHttpRequest).send && false){
 		function notifyDrag(e){
