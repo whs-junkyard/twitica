@@ -128,15 +128,23 @@ window['ImageLoader'] = {
 		}else if(url.match(/^http[s]{0,1}:\/\/picplz\.com\/([^\/]+)/) ||
 				url.match(/http[s]{0,1}:\/\/picplz\.com\/user\/[^\/]+\/pic\/([^\/]+)/)){
 			return new PicPlzLoader(url);
-		}else if(url.match(/^http[s]{0,1}:\/\/(www\.|)flickr\.com\/photos\/(.*?)\/([0-9]+)/)){
-			// 1: flic.kr is not supported by oembed
-			// 2: flickr oembed doesn't support JSONP
-			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://oohembed.com/oohembed/");
+		}else if(url.match(/^http[s]{0,1}:\/\/(www\.|)flickr\.com\/photos\/(.*?)\/([0-9]+)/) ||
+		url.match(/http[s]{0,1}:\/\/flic\.kr\/([a-zA-Z0-9])/)){
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://api.embed.ly/1/oembed");
 		}else if(url.match(/^http[s]{0,1}:\/\/(www\.|)xkcd\.com\/([0-9]+)/)){
 			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://oohembed.com/oohembed/");
 		}else if(url.match(/^http:\/\/twitgoo\.com\/([0-9a-zA-Z]+)/)){
 			// no HTTPS support
 			return new TwitGooLoader(url);
+		}else if(url.match(/^http[s]{0,1}:\/\/imgur\.com\/gallery\/([0-9a-zA-Z])/)){
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://api.embed.ly/1/oembed");
+		}else if(url.match(/^http[s]{0,1}:\/\/img\.ly\/([0-9a-zA-Z])/)){
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://api.embed.ly/1/oembed");
+		}else if(url.match(/^http[s]{0,1}:\/\/instagr\.am\/p\/([0-9a-zA-Z])/) ||
+		url.match(/^http[s]{0,1}:\/\/instagram\.com\/p\/([0-9a-zA-Z])/)){
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://api.embed.ly/1/oembed");
+		}else if(url.match(/^http[s]{0,1}:\/\/twitgoo\.com\/([0-9a-zA-Z])/)){
+			return new OEmbedLoader(url.replace(/^https:/, "http:"), "http://api.embed.ly/1/oembed");
 		}
 		/*else if(url.match(/^http[s]{0,1}:\/\/(www\.|)yfrog\.(com|ru|com.tr|it|fr|co.il|co.uk|com.pl|pl|eu|us)\/(.+)/)){
 			// yfrog doesn't offer JSONP

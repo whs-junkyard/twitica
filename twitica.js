@@ -161,7 +161,7 @@ function twcom(what, callback){
 		if(what.data['long']) data['long'] = what.data['long'];
 		//data["include_entities"] = true;
 		return Tw.post("statuses/retweet/"+what.data.id, data, callback);
-	}else if(what.type == "tw.shorten"){ // unused
+	}else if(what.type == "tw.shorten" && false){ // unused
 		$.get("http://twitter.com/share?url="+encodeURIComponent(what.url), {}, (function(how,old,d){
 			url = d.match(/<textarea [^>]+> (http:\/\/t\.co\/[a-zA-Z0-9]+)<\/textarea>/)[1];
 			how({url: url, old: old});
