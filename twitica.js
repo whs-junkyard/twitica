@@ -824,7 +824,8 @@ function replyCur(){
 	$(".user").removeClass("mentioned");
 	$(".user", getCurrent()).addClass("mentioned");
 }
-var repeatTime = new Date().getTime() - 5000;
+var repeatTime = 0;
+var tweetId = "0";
 /**
  * Repeat/Retweet the selected message
  */
@@ -840,9 +841,12 @@ function repeatCur(){
 			$("footer textarea").val("RT @"+getCurrent().data("data")['user']['screen_name']+" "+getCurrent().data("data")['text']);
 			return;
 		}
+		targetId = getCurrent().data("data")['id_str']
+		if(tweetId != targetId) repeatTime = 0;
 		if(SET['doubletaprt'] && repeatTime < new Date().getTime() - 1000){
 			notify("Press again to retweet");
 			repeatTime = new Date().getTime();
+			tweetId = targetId;
 		}else{
 			notify("Retweeting...");
 			cb = function(d){
@@ -857,7 +861,7 @@ function repeatCur(){
 					notify("<b>ERROR:</b> "+d['error']);
 				}
 			};
-			meta = {"id": getCurrent().data("data")['id_str'], "lat": geoPos[0], "long": geoPos[1]};
+			meta = {"id": targetId, "lat": geoPos[0], "long": geoPos[1]};
 			twcom({type: "tw.retweet", data: meta}, cb);
 		}
 	}
