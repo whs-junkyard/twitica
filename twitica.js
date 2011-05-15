@@ -35,8 +35,6 @@ var Tw;
 var in_reply_to;
 /** @type {number} */
 var refocus_bounce;
-/** @type {boolean} */
-var quoteRT = false;
 /** @const */
 var starIcon = "<span title='Favorited' style='color:yellow; -webkit-text-stroke: #555 1px;' class='staricon'>★ </span>";
 /** @type {boolean} */
@@ -826,6 +824,7 @@ function replyCur(){
 	$(".user").removeClass("mentioned");
 	$(".user", getCurrent()).addClass("mentioned");
 }
+var repeatTime = new Date().getTime() - 5000;
 /**
  * Repeat/Retweet the selected message
  */
@@ -835,27 +834,46 @@ function repeatCur(){
 	}
 	type = getCurrent().data("type");
 	if(type == "twitter"){
-		if(quoteRT || (getCurrent().data("data")['user']['protected'] && !getCurrent().data("data")['retweeted_status'])){ // rt always rt-able!
+		if((getCurrent().data("data")['user']['protected'] && !getCurrent().data("data")['retweeted_status'])){ // rt always rt-able!
 			if(getCurrent().data("data")['user']['protected'])
 				notify("<strong>WARN:</strong> Retweeting protected tweet")
 			$("footer textarea").val("RT @"+getCurrent().data("data")['user']['screen_name']+" "+getCurrent().data("data")['text']);
 			return;
 		}
-		notify("Retweeting...");
-		cb = function(d){
-			try{
-				d = JSON.parse(d);
-			}catch(e){}
-			if(d['errors']) d['error'] = d['errors'];
-			if(!d['error']){
-				notify("<div style='color: #afa'>Success! Retweeted</div>");
-				addTweet(d);
-			}else{
-				notify("<b>ERROR:</b> "+d['error']);
-			}
-		};
-		meta = {"id": getCurrent().data("data")['id_str'], "lat": geoPos[0], "long": geoPos[1]};
-		twcom({type: "tw.retweet", data: meta}, cb);
+		if(SET['doubletaprt'] && repeatTime < new Date().getTime() - 1000){
+			notify("Press again to retweet");
+			repeatTime = new Date().getTime();
+		}else{
+			notify("Retweeting...");
+			cb = function(d){
+				try{
+					d = JSON.parse(d);
+				}catch(e){}
+				if(d['errors']) d['error'] = d['errors'];
+				if(!d['error']){
+					notify("<div style='color: #afa'>Success! Retweeted</div>");
+					addTweet(d);
+				}else{
+					notify("<b>ERROR:</b> "+d['error']);
+				}
+			};
+			meta = {"id": getCurrent().data("data")['id_str'], "lat": geoPos[0], "long": geoPos[1]};
+			twcom({type: "tw.retweet", data: meta}, cb);
+		}
+	}
+}
+/**
+ * Quote the selected message
+ */
+function quoteCur(){
+	if($.query.get("timeline") == "dm"){
+		return notify("Not applicable.");
+	}
+	type = getCurrent().data("type");
+	if(type == "twitter"){
+		if(getCurrent().data("data")['user']['protected'])
+			notify("<strong>WARN:</strong> Retweeting protected tweet")
+		$("footer textarea").val("RT @"+getCurrent().data("data")['user']['screen_name']+" "+getCurrent().data("data")['text']);
 	}
 }
 /**
@@ -1452,14 +1470,6 @@ $(function(){
 				}
 			}
 		}
-		//shh
-		if(e.altKey && e.which == 115){
-			quoteRT = !quoteRT
-			if(quoteRT) wrd = "ON"; else wrd = "OFF";
-			notify("Quote RT <strong>"+wrd+"</strong>");
-			e.preventDefault();
-			return;
-		}
 		cmdKey = e.ctrlKey;
 		if(navigator.userAgent.match("Macintosh")){
 			cmdKey = e.metaKey;
@@ -1531,12 +1541,15 @@ $(function(){
 			}else if(e.which == 66){
 				favCur();
 				e.preventDefault();
+			}else if(e.which == 79){
+				quoteCur();
+				e.preventDefault();
 			}
 		}
 		if(e.which == 9){
 			var mentioning = getMentioning();
 		}
-		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor", "report"].sort();
+		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor", "report", "doubletaprt"].sort();
 		if(TwPlusAPI != "chrome"){
 			cmds.remove(cmds.indexOf("ytplaying"));
 		}
@@ -1577,8 +1590,9 @@ $(function(){
 					'uptime': new Date().getTime() - startTime,
 					'tweets': lastId,
 					'arg': arg,
-					'version': '1.15.7',
-					'api': TwPlusAPI
+					'version': '1.17',
+					'api': TwPlusAPI,
+					'useragent': navigator.userAgent
 				}
 				console.log(data, "/report");
 				data = JSON.stringify(data);
@@ -1590,7 +1604,7 @@ $(function(){
 				$("footer textarea").val("");
 				e.preventDefault();
 				return;
-			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor)(?: +|$)/)){
+			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor|doubletaprt)(?: +|$)/)){
 				toggleSet  = toggleSet[1];
 				SET[toggleSet] = !SET[toggleSet]
 				localStorage['config'] = JSON.stringify(SET);
@@ -1600,7 +1614,8 @@ $(function(){
 					"autoscroll": "Auto scrolling",
 					"nogeo": "Disable geolocation",
 					"rightside": "Own avatar at right",
-					"usercolor": "Colored nick"
+					"usercolor": "Colored nick",
+					"doubletaprt": "Double tap to RT"
 				}
 				if(SET[toggleSet] == true) notify(setName[toggleSet]+" <strong>ON</strong>");
 				else notify(setName[toggleSet]+" <strong>OFF</strong>");
