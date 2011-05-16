@@ -7,36 +7,177 @@
 	<script src="sha1.js" type="text/javascript"></script> 
 	<script src="oauth.js" type="text/javascript"></script> 
 	<!--<script src="twitter.js" type="text/javascript"></script>-->
-	<script src="options.compiled.js" type="text/javascript"></script> 
-	<style type="text/css"> 
+	<script src="options.compiled.js" type="text/javascript"></script>
+	<style type="text/css">
+@font-face{
+	font-family: "Droid Sans";
+	src: url(../DroidSans.ttf);
+}
 body{
+	font-family: "Droid Sans";
 	margin:0; padding:0;
-	font-family: verdana, "Lucida Sans", "Dejavu Sans", sans-serif;
 	background: #333;
-	color: white;
-	font-size: 12pt;
 }
 header{
+	width: 100%;
 	background: #111;
-	border-bottom: #555 solid 1px;
-	font-size: 24pt;
-	padding:5px;
+	-webkit-box-shadow: #111 0px 3px 30px;
+	color: white;
+	margin-bottom: 20px;
 }
-#body{
+header h1{
+	margin: 0;
 	padding: 10px;
 }
-a{
-	color: #eee;
+.optionbox{
+	margin: 40px;
+	-webkit-box-shadow: black 0px 10px 20px;
+	-webkit-border-radius: 10px;
+	background: #111;
+	color: white;
+	padding: 10px;
+}
+.optionbox a{
+	margin-right: 10px;
+	color: black;
+	text-decoration: none;
+	padding: 4px;
+	border: #aaa solid 1px;
+	background: #fff;
+	-webkit-border-radius: 5px;
+}
+h2{
+	font-size: 16pt;
+	margin-bottom: 15px;
+	border-bottom: #555 solid 1px;
+}
+h2 strong{
+	color: #eeff55;
+}
+#pin{
+	font-size: 16pt;
+	font-family: monospace;
+	border: black solid 1px;
+	width: 100%;
+	background: #111;
+	color: white;
+	border: none;
+}
+#avatar{
+	float: right;
+	margin: 10px;
+	border: #555 solid 1px;
+	-webkit-box-shadow: #111 0px 5px 10px;
+}
+small{
+	font-size: 9pt;
+	color: #aaa;
+}
+#help{
+	margin-top: 15px;
+	font-size: 9pt;
+	color: #aaa;
+}
+th{
+	text-align: left;
+}
+td{
+	vertical-align: center;
 }
 	</style> 
 </head> 
 <body> 
-<header> 
-	Login
-</header> 
-<div id="body"> 
-	<p id="login-status"></p>
-	<div id="twauth">Waiting for API...</div>
-</div> 
+	<header>
+		<h1>Options</h1>
+	</header>
+	<div class="optionbox">
+		<h2 id="loginstatus"></h2>
+		<div id="loginaction"></div>
+		<br style='clear: both;'>
+	</div>
+	<div class="optionbox">
+		<h2>Options</h2>
+		<p>Options can be toggled in-app by /command</p>
+		<table id="optionslist">
+		</table>
+	</div>
+	<div class="optionbox">
+		<h2>About</h2>
+		<p><a href="http://t.whsgroup.ath.cx">Homepage</a> <a href="https://chrome.google.com/webstore/detail/ogndknhgkahnialefpjkhmbekkobjfkh">Web store page</a> <a href="http://oneforty.com/item/twitica-desktop">Oneforty</a></p>
+		<p>Twitica Desktop (C) 2010-2011 Manatsawin Hanmongkolchai (@manatsawin) All rights reserved</p>
+		<p>If you like Twitica Desktop, please give us 5 stars on the Chrome web store and Oneforty.<br />Please report feedback using /report [your comment] or mention to @manatsawin</p>
+		<h2>Libraries license</h2>
+		<pre style="height: 200px; overflow: auto;"><strong>sha1.js</strong>
+A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined in FIPS PUB 180-1
+Version 2.1a Copyright Paul Johnston 2000 - 2002.
+Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+Distributed under the BSD License
+See http://pajhome.org.uk/crypt/md5 for details.
+
+<strong>oauth.js</strong>
+Copyright 2008 Netflix, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+<strong>DroidSans.ttf</strong>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+<strong>jquery.js</strong>
+jQuery JavaScript Library v1.5.2
+http://jquery.com/
+
+Copyright 2011, John Resig
+Dual licensed under the MIT or GPL Version 2 licenses.
+http://jquery.org/license
+
+Includes Sizzle.js
+http://sizzlejs.com/
+Copyright 2011, The Dojo Foundation
+Released under the MIT, BSD, and GPL Licenses.
+
+<strong>query.js</strong>
+jQuery.query - Query String Modification and Creation for jQuery
+Written by Blair Mitchelmore (blair DOT mitchelmore AT gmail DOT com)
+Licensed under the WTFPL (http://sam.zoy.org/wtfpl/).
+
+<strong>shadowbox.js</strong>
+Shadowbox is licensed under the terms of the <a href="http://www.shadowbox-js.com/LICENSE">Shadowbox.js License</a>.
+This license grants personal, non-commercial users the right to use
+Shadowbox without paying a fee.
+
+<strong>mousewheel.js</strong>
+Copyright (c) 2006 Brandon Aaron (brandon.aaron@gmail.com || http://brandonaaron.net)
+Dual licensed under the MIT (http://www.opensource.org/licenses/mit-license.php)
+and GPL (http://www.opensource.org/licenses/gpl-license.php) licenses.
+Thanks to: http://adomas.org/javascript-mouse-wheel/ for some pointers.
+Thanks to: Mathias Bank(http://www.mathias-bank.de) for a scope bug fix.
+
+<strong>twitter.js</strong>
+The Twitter library is licensed under the GNU Lesser General Public License version 3
+Portions from the Prototype JavaScript library
+
+<strong>imageloader.js</strong>
+The imageloader.js library is licensed under GNU Lesser General Public License v3 or later</pre>
+	</div>
 </body> 
 </html> 

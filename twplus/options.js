@@ -1,61 +1,129 @@
-var tw = new Twitter(), lsPoller;
-/** @define {string} API for cool features */ var TwPlusAPI="";
-function showLogout(){
-	$("#twauth").html("<a href='#'>Logout</a>").unbind("click").click(function(){
-		delete localStorage['twitterKey'];
-		delete localStorage['twitterUser'];
-		delete localStorage['twitterData'];
-		window.location.reload();
-	});
-}
-$(function(){
-	if(localStorage['twitterUser']){
-		$("#login-status").html("Currently logged in as <b>"+localStorage['twitterUser']+"</b>");
-		showLogout();
-	}else{
-		$("#login-status").html("Not logged in.");
-		tw.oauth(function(d){
-			$("#twauth").html("<img src='http://a0.twimg.com/images/dev/buttons/sign-in-with-twitter-d.png'>")
-					.unbind("click").click(function(){
-				$(this).html("");
-				localStorage['_tmp_pin'] = "not loaded";
-				if(TwPlusAPI == "chrome")
-					twAuth=window.open(d['url'], "twAuth", "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width=800,height=400");
-				else if(TwPlusAPI == "mac"){
-					window.resizeTo(820, 600);
-					$("#twauth").html("<iframe src='"+d['url']+"' style='width:800px;height: 450px; background: #C0DEED; border:none;' sandbox='allow-forms' seamless />");
-					frm = $("#twauth iframe").get(0);
-				}
-				lsPoller = setInterval((function(data){
-					if(localStorage['_tmp_pin'] == "not loaded" && TwPlusAPI == "chrome") return;
-					else if((TwPlusAPI == "appengine" || TwPlusAPI == "mac") && !frm.contentWindow.document.getElementById("oauth_pin")) return;
-					if(TwPlusAPI == "chrome"){
-						twAuth.close();
-						pin = localStorage['_tmp_pin'];
-					}else if(TwPlusAPI == "mac" || TwPlusAPI == "appengine"){
-						pin = $.trim(frm.contentWindow.document.getElementById("oauth_pin").innerHTML);
-					}
-					clearTimeout(lsPoller);
-					
-					$("#twauth").html("Exchanging token...");
-					tw.oauth2(pin, data, function(res){
-						if(!res) return alert("Cannot authenticate to Twitter!");
-						tw.get("account/verify_credentials", null, function(d){
-							localStorage['twitterUser'] = d['screen_name'];
-							localStorage['twitterData'] = JSON.stringify(d);
-							localStorage['twitterKey'] = JSON.stringify([
-								tw.consumer['token'],
-								tw.consumer['tokenSecret']
-							]);
-							$("#login-status").html("Currently logged in as <b>"+localStorage['twitterUser']+"</b>. Please reopen the application.");
-							showLogout();
-							if(TwPlusAPI == "mac" || TwPlusAPI == "appengine"){
-								window.location = "../index.html";
+var loginlogo, deleteUser, showUser, Tw=null;
+/** @define {string} API for cool features */ var TwPlusAPI = "";
+loginlogo = "https://si0.twimg.com/images/dev/buttons/sign-in-with-twitter-d.png";
+deleteUser = function() {
+	delete localStorage['twitterKey'];
+	delete localStorage['twitterUser'];
+	delete localStorage['twitterData'];
+	return showUser(null);
+};
+showUser = function(user) {
+	var showHelp, user;
+	try{
+		user = JSON.parse(localStorage['twitterData'])
+	}catch(e){
+		user = null;
+	}
+	if (user !== null) {
+		var key = JSON.parse(localStorage['twitterKey']);
+		Tw = new Twitter(key[0], key[1]);
+		$("#loginstatus").html("Welcome <strong>" + user['screen_name'] + "</strong>");
+		$("body").css("background-image", "url(" + user['profile_background_image_url'] + ")");
+		$("body").css("background-color", "#" + user['profile_background_color']);
+		$("body").css("background-repeat", user['profile_background_tile'] ? "repeat" : "no-repeat");
+		$("<img id='avatar' />").attr("src", user['profile_image_url']).appendTo("#loginstatus");
+		$("#loginaction").empty();
+		showHelp = function() {
+			return $("#help").html($(this).data("help"));
+		};
+		$("<a href='#'>Logout</a>").data("help", "Logout from the current user").appendTo("#loginaction").hover(showHelp).click(deleteUser);
+		$("<a href='#'>Reload user data</a>").data("help", "Refresh the login data when you have changed your information such as username or avatar.").hover(showHelp).appendTo("#loginaction").click(function() {
+			$("#loginaction").html("Updating user data...");
+			return Tw.get("account/verify_credentials", null, function(d) {
+				localStorage['twitterUser'] = d['screen_name'];
+				localStorage['twitterData'] = JSON.stringify(d);
+				localStorage['twitterKey'] = JSON.stringify([
+					Tw.consumer['token'],
+					Tw.consumer['tokenSecret']
+				]);
+				showUser();
+			});
+		});
+		return $("<div id='help' />").appendTo("#loginaction").html("To enter Twitica Desktop, please launch it from the new tab page");
+	} else {
+		$("#loginstatus").html("Welcome to Twitica Desktop");
+		$("#loginaction").html("Loading login token...");
+		Tw = new Twitter;
+		$("body").css("background-image", "");
+		$("body").css("background-color", "");
+		return Tw.oauth(function(d) {
+			$("#loginaction").empty();
+			return $("<img />").attr("src", loginlogo).appendTo("#loginaction").click(function() {
+				$("#loginaction").html("");
+				$("<input type='text' id='pin'	placeholder='Enter PIN and press enter' />").appendTo("#loginaction").keyup(function(e) {
+					if (e.which === 13) {
+						$("#loginaction").html("Exchanging token...");
+						return Tw.oauth2(this.value, d.data, function(res) {
+							if (!res) {
+								return alert("Cannot authenticate to Twitter");
 							}
+							return Tw.get("account/verify_credentials", null, function(d) {
+								localStorage['twitterUser'] = d['screen_name'];
+								localStorage['twitterData'] = JSON.stringify(d);
+								localStorage['twitterKey'] = JSON.stringify([
+									Tw.consumer['token'],
+									Tw.consumer['tokenSecret']
+								]);
+								showUser();
+								if(TwPlusAPI == "mac" || TwPlusAPI == "appengine"){
+									window.location = "../index.html";
+								}
+							});
 						});
-					});
-				}).bind(this, d['data']), 10);
+					}
+				});
+				return window.open(d.url, "twAuth", "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width=800,height=400");
 			});
 		});
 	}
+};
+var optionList = {}
+setName = {
+	"bgimg": "User background image (slow)",
+	"nothai": "No Thai input",
+	"autoscroll": "Auto scrolling when already at bottom",
+	"nogeo": "Disable geolocation",
+	"rightside": "Own avatar at right",
+	"usercolor": "IRC style colored nick",
+	"doubletaprt": "Double tap to RT",
+	"notifyDuration": "Notification hide timer"
+}
+setType = {
+	"bgimg": "bool",
+	"nothai": "bool",
+	"autoscroll": "bool",
+	"nogeo": "bool",
+	"rightside": "bool",
+	"usercolor": "bool",
+	"doubletaprt": "bool",
+	"notifyDuration": "number"
+}
+function showOptions(){
+	var SET;
+	try{
+		SET = JSON.parse(localStorage['config']);
+	}catch(e){
+		SET={"nogeo": true, "notifyDuration": 3};
+	}
+	$.each(setType, function(k,v){
+		if(v == "bool"){
+			widgetCode = "<input type='checkbox' "+ (SET[k] ? " checked" : "") +">";
+		}else if(v=="number"){
+			widgetCode = "<input type='number' value='"+SET[k]+"'>";
+		}
+		line = $("<tr><th>"+setName[k]+" <small>/"+k+"</small></th><td>"+widgetCode+"</td></tr>").appendTo("#optionslist");
+		$("input", line).change(function(){
+			if(v == "bool")
+				val = $(this).attr("checked");
+			else if(v == "number")
+				val = $(this).val();
+			SET[k] = val
+			localStorage['config'] = JSON.stringify(SET);
+		})
+	})
+}
+$(function() {
+	$("#loginstatus").html("Loading...");
+	showUser();
+	showOptions();
 });

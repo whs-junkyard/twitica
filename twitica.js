@@ -1594,7 +1594,7 @@ $(function(){
 					'uptime': new Date().getTime() - startTime,
 					'tweets': lastId,
 					'arg': arg,
-					'version': '1.17',
+					'version': '1.18',
 					'api': TwPlusAPI,
 					'useragent': navigator.userAgent
 				}
