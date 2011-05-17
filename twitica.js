@@ -792,7 +792,7 @@ function showBio(user){
 	$(".stat div:eq(3)", ele).text(number_format(user['listed_count']));
 	$(".stat div:eq(4) a", ele).attr("href", "http://klout.com/profile/summary/"+user['screen_name'])
 	$.getJSON("http://api.klout.com/1/klout.json?callback=?", {"key": "ghnt6x8dcgyzk47pyngnpndj", "users": user['screen_name']}, function(d){
-		$(".stat div:eq(4) a", ele).text(d.users[0].kscore)
+		$(".stat div:eq(4) a", ele).text(d['users'][0]['kscore'])
 	})
 }
 
@@ -1687,7 +1687,7 @@ $(function(){
 					'uptime': new Date().getTime() - startTime,
 					'tweets': $("#body article").length,
 					'arg': arg,
-					'version': '2.0',
+					'version': '2.0.1',
 					'api': TwPlusAPI,
 					'useragent': navigator.userAgent
 				}
