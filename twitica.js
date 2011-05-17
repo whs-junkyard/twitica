@@ -781,8 +781,8 @@ function showBio(user){
 	})
 	//$("#bio").css("background-color", "#"+user['profile_background_color']);
 	//$("#bio").css("color", "#"+user['profile_text_color']);
-	$(".userinfo img").attr("src", user['profile_image_url']);
-	$(".biolink", ele).attr("src", user['profile_url']);
+	$(".userinfo img", ele).attr("src", user['profile_image_url']);
+	$(".biolink", ele).attr("href", user['profile_url']);
 	$("h1", ele).text(user['name']).css("color", color_of(user['name']));
 	$("h2 span", ele).text("@"+user['screen_name']);
 	if(user['url'])
@@ -1692,7 +1692,7 @@ $(function(){
 					'uptime': new Date().getTime() - startTime,
 					'tweets': $("#body article").length,
 					'arg': arg,
-					'version': '2.0.2',
+					'version': '2.0.3',
 					'api': TwPlusAPI,
 					'useragent': navigator.userAgent
 				}
