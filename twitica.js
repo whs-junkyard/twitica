@@ -775,15 +775,20 @@ function addTweet(d, doScroll, eff, notifyMention){
  */
 function showBio(user){
 	$("header #bio").remove();
-	console.log(user);
-	ele = $('<div id="bio"><a href="#" class="biolink"><table class="userinfo"><tr><td><img src="http://a1.twimg.com/profile_images/1353258655/avatar-new_normal.jpg"></td><td style="padding-left: 10px;"><div class="close"><a href="#">X</a></div><h1></h1><h2><span></span> <a href="#" target="_blank"></a></h2></td></tr></table></a><p class="bio"></p><p class="loc"></p><table class="stat"><tr><td><div></div>Tweets</td><td><div></div>Following</td><td><div></div>Followers</td><td><div></div>Listed</td><td><div><a href="#" target="_blank">&nbsp;</a></div>Klout</td></tr></table></div>').appendTo("header")
+	ele = $('<div id="bio"><a href="#" class="biolink"><table class="userinfo"><tr><td><img src=""></td><td style="padding-left: 10px;"><div class="close"><a href="#">X</a></div><h1></h1><h2><span></span> <a href="#" target="_blank"></a></h2></td></tr></table></a><p class="bio"></p><p class="loc"></p><table class="stat"><tr><td><div></div>Tweets</td><td><div></div>Following</td><td><div></div>Followers</td><td><div></div>Listed</td><td><div><a href="#" target="_blank">&nbsp;</a></div>Klout</td></tr></table></div>').appendTo("header")
 	$(".close", ele).click(function(){
 		ele.slideUp(function(){ele.remove(); refocus();});
 	})
+	//$("#bio").css("background-color", "#"+user['profile_background_color']);
+	//$("#bio").css("color", "#"+user['profile_text_color']);
+	$(".userinfo img").attr("src", user['profile_image_url']);
 	$(".biolink", ele).attr("src", user['profile_url']);
-	$("h1", ele).text(user['name']);
+	$("h1", ele).text(user['name']).css("color", color_of(user['name']));
 	$("h2 span", ele).text("@"+user['screen_name']);
-	$("h2 a", ele).text(user['url']).attr("href", user['url']);
+	if(user['url'])
+		$("h2 a", ele).text(user['url']).attr("href", user['url']);
+	else
+		$("h2 a", ele).remove();
 	$(".bio", ele).text(user['description']);
 	$(".loc", ele).text(user['location']);
 	$(".stat div:eq(0)", ele).text(number_format(user['statuses_count']));
@@ -1687,7 +1692,7 @@ $(function(){
 					'uptime': new Date().getTime() - startTime,
 					'tweets': $("#body article").length,
 					'arg': arg,
-					'version': '2.0.1',
+					'version': '2.0.2',
 					'api': TwPlusAPI,
 					'useragent': navigator.userAgent
 				}
