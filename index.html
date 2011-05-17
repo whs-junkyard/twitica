@@ -148,6 +148,7 @@ article{
 	padding-top:2px;padding-bottom:2px;
 	-webkit-transition: margin-left .5s ease-out, width .5s linear, -webkit-transform 3s ease-in;
 	/*text-shadow: #222 0px 3px 3px;*/
+	word-wrap: break-word;
 }
 article, article table{
 	-webkit-box-sizing: border-box;
@@ -212,6 +213,8 @@ article .noticebadge{
 	border: #333 solid 1px;
 	-webkit-transition: background 250ms linear;
 	-webkit-border-radius: 5px;
+	white-space: nowrap;
+	word-wrap: normal;
 }
 .floatingbox{
 	position: fixed;
@@ -247,6 +250,51 @@ article .noticebadge{
 	text-align: center;
 	padding: 30px;
 	-webkit-border-radius: 25px;
+}
+#bio{
+	padding: 10px;
+}
+#bio img{
+	float: left;
+	-webkit-box-shadow: #444 0px 0px 50px;
+	width: 48px; height: 48px;
+}
+#bio p{
+	font-family: tahoma, sans-serif;
+}
+#bio h1, #bio h2{margin:0;}
+#bio h1{
+	font-size: 12pt;
+	font-weight: bold;
+}
+#bio h2{
+	font-size: 10pt;
+}
+#bio a{
+	color: #888;
+	text-decoration: none;
+}
+#bio a:hover{
+	color: #abc;
+}
+#bio .loc{
+	margin-top: 0;
+	color: gray;
+}
+#bio .stat{
+	width: 100%;
+}
+#bio div{
+	font-size: 14pt;
+}
+#bio div a{color: inherit;}
+#bio .userinfo{
+	width: 100%;
+	color: white;
+}
+#bio .close{
+	float: right;
+	font-size: 10pt;
 }
 	</style>
 </head>

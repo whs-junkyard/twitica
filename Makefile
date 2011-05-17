@@ -53,7 +53,6 @@ build-appengine: DIST = $(BUILDDIR)-appengine/twitica
 build-appengine: TARGET = appengine
 build-appengine: | appengine appengine-prep copy-appengine
 	-rm $(DIST)/manifest.json
-	-rm $(DIST)/twplus/{getPIN.js,handler.html}
 appengine-install: DIST = $(BUILDDIR)-appengine/twitica
 appengine-install: build-appengine
 	$(APPCFG) update ${abspath $(DIST)/..}
@@ -62,7 +61,6 @@ build-mac: TARGET = mac
 build-mac: DIST = ../Twitica\ Mac/twitica/
 build-mac: | twplus/options.compiled.js.mac twitica.compiled.js.mac ../Twitica\ Mac/twitica/
 	-rm $(DIST)/manifest.json
-	-rm $(DIST)/twplus/{getPIN.js,handler.html}
 ../Twitica\ Mac/build/Release/Twitica\ Mac.app: build-mac
 	(cd ../Twitica\ Mac; xcodebuild)
 

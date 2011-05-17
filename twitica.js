@@ -1,8 +1,4 @@
 /** @define {string} API for cool features */ var TwPlusAPI="";
-/** @type {number} */
-var curPos=0;
-/** @type {number} */
-var lastId=0;
 /** @type {Object.<string, Object>} */
 var accInfo = {};
 /** @type {Array.<string>} */
@@ -229,13 +225,15 @@ function ungt(s){
 /**
  * Return selected notice
  *
- * Updated since 10 September 2010, as selecting the element with jQuery does not supply $.expando correctly
+ * Updated 10 September 2010, as selecting the element with jQuery does not supply $.expando correctly
  * thus not supplying $.data and breaks replyCur. 
+ *
+ * Updated 17 May 2011 for Twitica 2.0
  *
  * @returns {jQuery} User-selected tweet
  */
 function getCurrent(){
-	return dentsElement[curPos];
+	return $("#body article.selected");
 }
 /**
  * Is that tweet blocked from displaying?
@@ -290,21 +288,32 @@ function isBlocked(user, src, txt, following){
 	return blocked || spam;
 }
 /**
+ * Focus the element
+ * @since 17 May 2011
+ */
+function focus(e){
+	$("#body article.selected").removeClass("selected").blur();
+	e.addClass("selected").focus();
+}
+/**
  * Scroll to the selected notice
  * @see getCurrent
  */
 function refocus(){
 	title = document.title.replace(/^\(([\-0-9 !]+)\) /, "");
 	if(isFocusing) unreadCount=[0,0];
+	if(getCurrent().length == 0) focus($("#body article:first"));
+	var curPos = getCurrent().prevAll().length;
+	var lastId = $("#body article").length;
 	if(unreadCount[0] <= 0 || true){
 		if(!konami){
 			count = curPos+1;
 			left = lastId-count;
 		}else{
-			count = lastId-curPos;
+			count = lastId - curPos;
 			left = count-1;
 		}
-		mentionCnt = $("#body article:gt("+curPos+")").filter(".replied").length;
+		mentionCnt = getCurrent().nextAll(".replied").length;
 	}else{
 		left = unreadCount[0];
 		mentionCnt = unreadCount[1];
@@ -327,14 +336,11 @@ function refocus(){
 		twcom({"type": "refocus", "count": count, "left": left || 0, "mention": mentionCnt});
 	$("#twcounter").html(count+"/"+lastId);
 	
-	if($("#body article.selected").data("id") == curPos && !twFirstLoadDone){
+	/*if($("#body article.selected").data("id") == curPos && !twFirstLoadDone){
 		return 0;
-	}
+	}*/
 	
-	$("#body article.selected").removeClass("selected").blur();
 	thisOne = getCurrent();
-	if(thisOne)
-		thisOne.addClass("selected").focus(); //focus here is the event focus
 	if(SET['bgimg']){
 		if(!$("#body").hasClass("withbg")){
 			$("#body").addClass("withbg");
@@ -372,7 +378,7 @@ function refocus(){
 	speed = 0;
 	if(b>bb){
 		flickering = true;
-		np = b - $(window).height() +$("footer").height() + 100;
+		np = b - $(window).height() + $("footer").height() + 100 + $("header").height();
 		distance = Math.abs(ot-np);
 		speed = Math.max((distance/2.5)*0.01, 3);
 		$('body').stop(true).animate({"scrollTop":  np}, {duration: (speed*100)+500, easing: "easeOutBack"}, function(){
@@ -381,7 +387,7 @@ function refocus(){
 		//$('body').scrollTop(np);
 	}else if(t < tt){
 		flickering = true;
-		np = t - 25 - 100;
+		np = t - 25 - 100 - $("header").height();
 		distance = Math.abs(ot-np);
 		speed = Math.max((distance/2.5)*0.01, 3);
 		$('body').stop(true).animate({"scrollTop":  np}, {duration: (speed*100)+500, easing: "easeOutBack"}, function(){
@@ -394,20 +400,24 @@ function refocus(){
 /**
  * Scroll n tweet down
  * N could be positive (down) or negative (up)
- * @param {int} Amount to scroll, can be positive and negative
+ * @param {number} Amount to scroll, can be positive and negative
  * @param {boolean=} Do refocus() (default=true)
  */
 function scroll(a, ref){
-	curPos += a
-	if(curPos < 0){
-		curPos = 0;
-		if(ref !== false) refocus();
-	}else if(curPos > lastId-1){
-		curPos = lastId-1;
-		if(ref !== false) refocus();
-	}else{
-		if(ref !== false) refocus();
+	e = getCurrent();
+	while(a != 0){
+		if(a < 0){
+			a+=1;
+			if(e.prev().length != 0)
+				e=e.prev();
+		}else if(a > 0){
+			a-=1;
+			if(e.next().length != 0)
+				e=e.next();
+		}
 	}
+	focus(e);
+	if(ref !== false) refocus();
 	//if(isFocusing) unreadCount=[0,0];
 }
 /**
@@ -525,7 +535,10 @@ function processMsg(d, kind){
 				if(e.ctrlKey) return true;
 				theDiv = dataDiv[$(this).data("id")];
 				if(!theDiv) return true;
-				else scroll(theDiv.data("id") - curPos);
+				else{
+					focus(theDiv);
+					refocus();
+				}
 				return false;
 			});
 			$(".username:eq(0)", d['html']).attr("href", d['in_reply_to_status_url']);
@@ -708,20 +721,22 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 		dent.css("margin-left", -1*$(window).width());
 
 	dataDiv[d['id_str']] = dent;	
-	dent.appendTo("#body").addClass(kind).data("type", kind).data("id", lastId);
-	dentsElement[lastId] = dent;
+	dent.appendTo("#body").addClass(kind).data("type", kind);
+	dentsElement[dentsElement.length] = dent;
 	if(eff){
 		dent.hide().slideDown(1000);
 		setTimeout(function(dent){
 			dent.css("margin-left", 0);
 		}, 1, dent);
 	}
-	if(doScroll && curPos == lastId-1 && SET['autoscroll']){
-		curPos = lastId;
+	if(doScroll && getCurrent().nextAll().length == 1 && SET['autoscroll']){
+		focus(dent);
 		tout=0;
 		if(eff)
 			tout = 1000;
-		setTimeout(refocus, tout);
+		setTimeout(function(){
+			refocus();
+		}, tout);
 	}else{
 		refocus();
 	}
@@ -741,7 +756,6 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 	}
 	if(!isFocusing) unreadCount[0]++;
 	else unreadCount = [0,0];
-	lastId++;
 }
 /**
  * Add Twitter message
@@ -755,6 +769,61 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 function addTweet(d, doScroll, eff, notifyMention){
 	addMsg(d, doScroll, eff, notifyMention, "twitter");
 }
+/**
+ * Show biography of a user
+ * @param {Object} User object
+ */
+function showBio(user){
+	$("header #bio").remove();
+	console.log(user);
+	ele = $('<div id="bio"><a href="#" class="biolink"><table class="userinfo"><tr><td><img src="http://a1.twimg.com/profile_images/1353258655/avatar-new_normal.jpg"></td><td style="padding-left: 10px;"><div class="close"><a href="#">X</a></div><h1></h1><h2><span></span> <a href="#" target="_blank"></a></h2></td></tr></table></a><p class="bio"></p><p class="loc"></p><table class="stat"><tr><td><div></div>Tweets</td><td><div></div>Following</td><td><div></div>Followers</td><td><div></div>Listed</td><td><div><a href="#" target="_blank">&nbsp;</a></div>Klout</td></tr></table></div>').appendTo("header")
+	$(".close", ele).click(function(){
+		ele.slideUp(function(){ele.remove(); refocus();});
+	})
+	$(".biolink", ele).attr("src", user['profile_url']);
+	$("h1", ele).text(user['name']);
+	$("h2 span", ele).text("@"+user['screen_name']);
+	$("h2 a", ele).text(user['url']).attr("href", user['url']);
+	$(".bio", ele).text(user['description']);
+	$(".loc", ele).text(user['location']);
+	$(".stat div:eq(0)", ele).text(number_format(user['statuses_count']));
+	$(".stat div:eq(1)", ele).text(number_format(user['friends_count']));
+	$(".stat div:eq(2)", ele).text(number_format(user['followers_count']));
+	$(".stat div:eq(3)", ele).text(number_format(user['listed_count']));
+	$(".stat div:eq(4) a", ele).attr("href", "http://klout.com/profile/summary/"+user['screen_name'])
+	$.getJSON("http://api.klout.com/1/klout.json?callback=?", {"key": "ghnt6x8dcgyzk47pyngnpndj", "users": user['screen_name']}, function(d){
+		$(".stat div:eq(4) a", ele).text(d.users[0].kscore)
+	})
+}
+
+/**
+ * PHP's number_format()
+ * @author php.js
+ * @see https://github.com/kvz/phpjs/raw/master/functions/strings/number_format.js
+ */
+function number_format (number, decimals, dec_point, thousands_sep) {
+    number = (number + '').replace(/[^0-9+\-Ee.]/g, '');
+    var n = !isFinite(+number) ? 0 : +number,
+        prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+        sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+        dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
+        s = '',
+        toFixedFix = function (n, prec) {
+            var k = Math.pow(10, prec);
+            return '' + Math.round(n * k) / k;
+        };
+    // Fix for IE parseFloat(0.55).toFixed(0) = 0;
+    s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+    if (s[0].length > 3) {
+        s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+    }
+    if ((s[1] || '').length < prec) {
+        s[1] = s[1] || '';
+        s[1] += new Array(prec - s[1].length + 1).join('0');
+    }
+    return s.join(dec);
+}
+
 /**
  * Set the text cursor to position
  * @param {Element} The textbox
@@ -856,7 +925,7 @@ function repeatCur(){
 				if(d['errors']) d['error'] = d['errors'];
 				if(!d['error']){
 					notify("<div style='color: #afa'>Success! Retweeted</div>");
-					addTweet(d);
+					addTweet(d, true);
 				}else{
 					notify("<b>ERROR:</b> "+d['error']);
 				}
@@ -961,8 +1030,11 @@ function twitterLoad(periodical, callback){
 		d = d.reverse();
 		$.each(d, function(k,v){addTweet(v);});
 		refocus();
-		if(curPos != lastId && SET['autoscroll']){
-			setTimeout(scroll, 1000, lastId - curPos);
+		if($.query.get("timeline") == "user"){
+			showBio(d[d.length-1].user);
+		}
+		if(getCurrent().nextAll().length > 0 && SET['autoscroll']){
+			setTimeout(focus, 1000, $("#body article:last"))
 		}
 	};
 	params = {user: $.query.get("user"), since_id: last_twitter_id || "0"}
@@ -981,8 +1053,8 @@ window['loadTestData'] = function(url){
 		d = d.reverse();
 		$.each(d, function(k,v){addTweet(v);});
 		refocus();
-		if(curPos != lastId && SET['autoscroll']){
-			setTimeout(scroll, 1000, lastId - curPos);
+		if(getCurrent().nextAll().length > 0 && SET['autoscroll']){
+			setTimeout(focus, 1000, $("#body article:last"));
 		}
 		console.log(new Date().getTime() - t, "loadtime");
 		notify("Parsed in "+(new Date().getTime() - t).toString())
@@ -1027,7 +1099,20 @@ function chirpParse(d){
 				x.executeSql("INSERT INTO following (id, name, data, kind) VALUES (?, ?, ?, ?)", [d['target']['id'], d['target']['screen_name'], JSON.stringify(d['target']), "twitter"]);
 			});
 		}
+	}else if(d['delete']){
+		if(dataDiv[d['delete']['status']['id_str']] === undefined) return;
+		dataDiv[d['delete']['status']['id_str']].slideUp(function(){
+			$(this).remove();
+			delete dataDiv[d['delete']['status']['id_str']];
+		});
+		if(dataDiv[d['delete']['status']['id_str']].nextAll().length == 0 &&
+			getCurrent().nextAll().length == 0
+		){
+			focus(getCurrent().prev());
+		}
+		refocus();
 	}else if(d['direct_message']){
+		if(d['direct_message']['sender']['id'] == accInfo['twitter']['data']['id']) return;
 		comnotify("DM from "+d['direct_message']['sender_screen_name'], d['direct_message']['text']+" (press Ctrl/Cmd+. to view/reply)", d['direct_message']['sender']['profile_image_url']);
 	}else{
 		console.log(d, "CHIRP_newkind");
@@ -1171,13 +1256,19 @@ function search(dir){
 		dirN = "below";
 	}
 	lookIn = 0;
+	ele = getCurrent();
+	lastEle = ele.selector;
 	while(true){
-		if(dir) lookIn-=1;
-		else lookIn+=1;
-		ele = dentsElement[curPos+lookIn];
-		if(ele === undefined) break;
+		if(dir){
+			ele = ele.prev();
+		}else{
+			ele = ele.next();
+		}
+		if(ele.selector == lastEle.selector) break;
+		lastEle = ele.selector;
 		if($(".user", ele).text().toLowerCase().indexOf(keyword) != -1 || $(".noticebody", ele).text().toLowerCase().indexOf(keyword) != -1){
-			curPos = ele.data("id"); refocus();
+			focus(ele);
+			refocus();
 			return false;
 		}
 	}
@@ -1455,10 +1546,12 @@ $(function(){
 				else
 					scroll(10 * kmul);
 			}else if((e.which == 35 && !konami) || (e.which == 36 && konami)){
-				scroll(lastId - curPos);
+				focus($("#body article:last"));
+				refocus();
 				e.preventDefault();
 			}else if((e.which == 36 && !konami) || (e.which == 35 && konami)){
-				scroll((-1*curPos)-1);
+				focus($("#body article:first"));
+				refocus();
 				e.preventDefault();
 			}else if(e.which == 13){
 				e.preventDefault();
@@ -1592,9 +1685,9 @@ $(function(){
 					'startTime': startTime,
 					'time': new Date().getTime(),
 					'uptime': new Date().getTime() - startTime,
-					'tweets': lastId,
+					'tweets': $("#body article").length,
 					'arg': arg,
-					'version': '1.18',
+					'version': '2.0',
 					'api': TwPlusAPI,
 					'useragent': navigator.userAgent
 				}
@@ -1767,18 +1860,20 @@ $(function(){
 	}
 	
 	// Delegations
-	$("#body").delegate("a>.avatar", "click", function(e){
+	$("#body").delegate("a>.avatar,a>.avatarright", "click", function(e){
 		d = $(this).closest("article").data("data");
-		console.log($(this).closest("article"));
 		if(!d) return true;
-		window.open("?timeline=user&user="+d['user']['screen_name'], d['user']['id']+'timeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+		window.open("?timeline=user&user="+d['user']['screen_name'], d['user']['screen_name']+'timeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
 		e.preventDefault();
 		return false;
 	}).delegate("article .irp", "click", function(e){
 		if(e.ctrlKey) return true;
 		theDiv = dataDiv[$(this).data("id")];
 		if(!theDiv) return true;
-		else scroll(theDiv.data("id") - curPos);
+		else{
+			focus(theDiv);
+			refocus();
+		}
 		return false;
 	}).delegate("article a", "click", function(e){
 		if(linkCheck(e) == false) return true;
@@ -1802,7 +1897,7 @@ $(function(){
 			e.preventDefault();
 		}
 	}).delegate("article", "click", function(e){
-		curPos = $(this).data("id");
+		focus($(this))
 		refocus();
 	}).delegate("article", "focus", function(e){
 		$(".noticeMeta").slideUp(100, function(){$(this).remove();});
@@ -1831,6 +1926,10 @@ $(function(){
 				theMetad.appendTo(noticeMetad);
 			});
 		}
+	}).delegate("article .noticebody a.username", "click", function(e){
+		if(e.ctrlKey) return true;
+		window.open("?timeline=user&user="+$(this).data("screen-name"), $(this).data("screen-name")+'timeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+		e.preventDefault();
 	});
 	
 	

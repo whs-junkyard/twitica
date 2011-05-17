@@ -1,6 +1,6 @@
 {
 	"name": "Twitica Desktop",
-	"version": "1.18",
+	"version": "2.0",
 	"description": "A Twitter client focusing on timeline view.",
 	"options_page": "twplus/options.html",
 	"app": {
@@ -12,29 +12,20 @@
 		}
 	},
 	"permissions": [
-		"http://twitter.com/",
 		"https://api.twitter.com/",
 		"https://userstream.twitter.com/",
 		"http://maps.google.com/",
 		"https://api-ssl.bit.ly/",
-		"http://api.twitpic.com/",
 		"https://twitpic.com/",
 		"tabs",
 		"notifications",
-		"geolocation"
+		"geolocation",
+		"unlimitedStorage"
 	],
 	"icons": {
 		"16": "logo16.png",
 		"48": "logo48.png",
 		"128": "logo.png"
 	},
-	"content_scripts": [
-		{
-			"matches": ["https://api.twitter.com/oauth/*"],
-			"js": ["jquery.js", "twplus/getPIN.js"],
-			"run_at": "document_end"
-		}
-	],
-	"minimum_chrome_version":  "9.0",
-	"background_page" : "twplus/handler.html"
+	"minimum_chrome_version":  "9.0"
 }
