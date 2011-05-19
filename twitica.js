@@ -155,14 +155,20 @@ function twcom(what, callback){
 		if(what.data['long']) data['long'] = what.data['long'];
 		//data["include_entities"] = true;
 		return Tw.post("statuses/retweet/"+what.data.id, data, callback);
-	}else if(what.type == "tw.shorten" && false){ // unused
-		$.get("http://twitter.com/share?url="+encodeURIComponent(what.url), {}, (function(how,old,d){
-			url = d.match(/<textarea [^>]+> (http:\/\/t\.co\/[a-zA-Z0-9]+)<\/textarea>/)[1];
-			how({url: url, old: old});
-		}).bind(this, callback, what.url));
 	}else if(what.type == "shorten"){
-		$.getJSON("https://api-ssl.bit.ly/v3/shorten?login=manatsawin&apiKey=R_fe0508be39d31d16b36c8ae014d4bfc4&format=json&domain=j.mp&longUrl="+encodeURIComponent(what.url), {}, (function(how,d){
-			how({'url': d['data']['url'], 'old': d['data']['long_url']});
+		var data = {
+			"login": "manatsawin",
+			"apiKey": "R_fe0508be39d31d16b36c8ae014d4bfc4",
+			"format": "json",
+			"domain": "j.mp",
+			"longUrl": what['url']
+		};
+		if(localStorage['bitlyKey'] && localStorage['bitlyUser']){
+			data['x_login'] = localStorage['bitlyUser'];
+			data['x_apiKey'] = localStorage['bitlyKey'];
+		}
+		$.getJSON("https://api-ssl.bit.ly/v3/shorten", data, (function(how,d){
+			how({'url': d['data']['url'], 'old': what['url']});
 		}).bind(this, callback));
 	}else if(what.type == "ytplaying" && TwPlusAPI == "chrome"){
 		// find yt window
@@ -277,7 +283,7 @@ function isBlocked(user, src, txt, following){
 		if(src == "web") current += 1;
 		if(txt.indexOf("@"+accInfo['twitter']['username']) == 0) current += 2;
 		else if(txt.indexOf("@"+accInfo['twitter']['username']) != -1) current += 1;
-		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch", "Trip", "bit.ly"].forEach(function(x){
+		["iPad", "Xoom", "free", "RT", "http://", "iPhone", "Apple", "Steve Jobs", "MacBook", "iMac", "iPod Touch", "Trip", "bit.ly", "tinyurl.com", "win"].forEach(function(x){
 			if(txt.match(new RegExp(x, "i"))) current += 1;
 		});
 		if(current > threshold){
@@ -599,7 +605,7 @@ function processMsg(d, kind){
 	dent = $('<article><table><tr>'+avatarLeft+'<td class="noticetdin '+tdClass+'">'
 		+ '<div><span class="tweeticon">'+lock+'</span><span class="user" title="'+d['user']['name']+'">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
 		+ '</td>'+avatarRight+'</tr></table></article>'
-	).data("data", d);
+	).data("data", d).data("id", d['id_str']);
 	if(SET['usercolor'])
 		$(".user", dent).css("color", color_of(d['user']['screen_name']));
 	$(".noticebody", dent).append(d['html']);
@@ -775,7 +781,7 @@ function addTweet(d, doScroll, eff, notifyMention){
  */
 function showBio(user){
 	$("header #bio").remove();
-	ele = $('<div id="bio"><a href="#" class="biolink"><table class="userinfo"><tr><td><img src=""></td><td style="padding-left: 10px;"><div class="close"><a href="#">X</a></div><h1></h1><h2><span></span> <a href="#" target="_blank"></a></h2></td></tr></table></a><p class="bio"></p><p class="loc"></p><table class="stat"><tr><td><div></div>Tweets</td><td><div></div>Following</td><td><div></div>Followers</td><td><div></div>Listed</td><td><div><a href="#" target="_blank">&nbsp;</a></div>Klout</td></tr></table></div>').appendTo("header")
+	ele = $('<div id="bio"><a href="#" class="biolink" target="_blank"><table class="userinfo"><tr><td><img src=""></td><td style="padding-left: 10px;"><div class="close"><a href="#">X</a></div><h1></h1><h2><span></span> <a href="#" target="_blank"></a></h2></td></tr></table></a><p class="bio"></p><p class="loc"></p><table class="stat"><tr><td><div></div>Tweets</td><td><div></div>Following</td><td><div></div>Followers</td><td><div></div>Listed</td><td><div><a href="#" target="_blank">&nbsp;</a></div>Klout</td></tr></table></div>').appendTo("header")
 	$(".close", ele).click(function(){
 		ele.slideUp(function(){ele.remove(); refocus();});
 	})
@@ -783,7 +789,7 @@ function showBio(user){
 	//$("#bio").css("color", "#"+user['profile_text_color']);
 	$(".userinfo img", ele).attr("src", user['profile_image_url']);
 	$(".biolink", ele).attr("href", user['profile_url']);
-	$("h1", ele).text(user['name']).css("color", color_of(user['name']));
+	$("h1", ele).text(user['name']).css("color", color_of(user['screen_name']));
 	$("h2 span", ele).text("@"+user['screen_name']);
 	if(user['url'])
 		$("h2 a", ele).text(user['url']).attr("href", user['url']);
@@ -1260,17 +1266,19 @@ function search(dir){
 	}else{
 		dirN = "below";
 	}
-	lookIn = 0;
 	ele = getCurrent();
-	lastEle = ele.selector;
-	while(true){
+	lastEle = ele.data("id");
+	count = 0;
+	maxCount = ele.prevAll().length;
+	while(count <= maxCount){
+		count += 1;
 		if(dir){
 			ele = ele.prev();
 		}else{
 			ele = ele.next();
 		}
-		if(ele.selector == lastEle.selector) break;
-		lastEle = ele.selector;
+		if(ele.data("id") == lastEle) break;
+		lastEle = ele.data("idterm");
 		if($(".user", ele).text().toLowerCase().indexOf(keyword) != -1 || $(".noticebody", ele).text().toLowerCase().indexOf(keyword) != -1){
 			focus(ele);
 			refocus();
@@ -1396,6 +1404,8 @@ $(function(){
 	if(!localStorage['blockKey']) localStorage['blockKey'] = "";
 	if(!localStorage['config'])
 		localStorage['config'] = '{"nogeo": true}';
+	if(!localStorage['bitlyKey'])
+		localStorage['bitlyKey'] = "R_fe0508be39d31d16b36c8ae014d4bfc4"
 	SET = JSON.parse(localStorage['config']);
 	$("#dropMe,#help").hide();
 	if(TwPlusAPI == "chrome" && false){
@@ -1614,16 +1624,22 @@ $(function(){
 				}
 				e.preventDefault();
 			}else if(e.which == 83){
-				urls = $("footer textarea").val().match(twttr['txt']['regexen']['validUrl']);
+				urls = twttr.txt.extractUrls($("footer textarea").val());
 				urls = $.unique(urls);
+				if(urls.length == 0){
+					notify("No URL to shorten");
+					e.preventDefault();
+					return false;
+				}
 				notify("Shortening URLs");
-				urls.forEach(function(me){
-					twcom({'type': "shorten", 'url': me}, function(res){
+				$.each(urls, function(k, url){
+					if(!url) return;
+					twcom({'type': "shorten", 'url': url}, function(res){
 						ov = $("footer textarea").val();
-						ov = ov.replace(res['old'], res['url']);
+						ov = ov.replace(url, res['url']);
 						$("footer textarea").val(ov);
 					});
-				});
+				})
 				e.preventDefault();
 			}else if(e.which == 75){
 				bk = prompt("Keywords to block? Prefix with src: to block a client, user: to block a user. Regex OK. Split with ||", localStorage['blockKey']);
@@ -1684,26 +1700,28 @@ $(function(){
 				return false;
 			}else if($.trim(txt).match(/^\/report/)){
 				arg = $.trim(txt).split(" ").slice(1).join(" ");
-				data = {
-					'settings': SET,
-					'user': accInfo['twitter']['username'],
-					'startTime': startTime,
-					'time': new Date().getTime(),
-					'uptime': new Date().getTime() - startTime,
-					'tweets': $("#body article").length,
-					'arg': arg,
-					'version': '2.0.3',
-					'api': TwPlusAPI,
-					'useragent': navigator.userAgent
-				}
-				console.log(data, "/report");
-				data = JSON.stringify(data);
-				sig = hex_sha1(data);
-				notify("Sending report...");
-				$.getJSON("http://t.whsgroup.ath.cx/twreg.php?callback=?", {"data": data, "signature": sig}, function(d){
-					notify(d['out']);
+				$.getJSON("manifest.json", function(out){
+					data = {
+						'settings': SET,
+						'user': accInfo['twitter']['username'],
+						'startTime': startTime,
+						'time': new Date().getTime(),
+						'uptime': new Date().getTime() - startTime,
+						'tweets': $("#body article").length,
+						'arg': arg,
+						'version': out['version'],
+						'api': TwPlusAPI,
+						'useragent': navigator.userAgent
+					}
+					console.log(data, "/report");
+					data = JSON.stringify(data);
+					sig = hex_sha1(data);
+					notify("Sending report...");
+					$.getJSON("http://t.whsgroup.ath.cx/twreg.php?callback=?", {"data": data, "signature": sig}, function(d){
+						notify(d['out']);
+					})
+					$("footer textarea").val("");
 				})
-				$("footer textarea").val("");
 				e.preventDefault();
 				return;
 			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor|doubletaprt)(?: +|$)/)){

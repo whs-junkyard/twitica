@@ -86,7 +86,9 @@ setName = {
 	"rightside": "Own avatar at right",
 	"usercolor": "IRC style colored nick",
 	"doubletaprt": "Double tap to RT",
-	"notifyDuration": "Notification hide timer"
+	"notifyDuration": "Notification hide timer",
+	"bitlyUser": "Bit.ly Username",
+	"bitlyKey": "Bit.ly API Key"
 }
 setType = {
 	"bgimg": "bool",
@@ -96,7 +98,9 @@ setType = {
 	"rightside": "bool",
 	"usercolor": "bool",
 	"doubletaprt": "bool",
-	"notifyDuration": "number"
+	"notifyDuration": "number",
+	"bitlyUser": "text",
+	"bitlyKey": "text"
 }
 function showOptions(){
 	var SET;
@@ -105,20 +109,38 @@ function showOptions(){
 	}catch(e){
 		SET={"nogeo": true, "notifyDuration": 3};
 	}
+	if(!localStorage['bitlyKey'])
+		localStorage['bitlyKey'] = ""
+	if(!localStorage['bitlyUser'])
+		localStorage['bitlyUser'] = ""
 	$.each(setType, function(k,v){
 		if(v == "bool"){
 			widgetCode = "<input type='checkbox' "+ (SET[k] ? " checked" : "") +">";
 		}else if(v=="number"){
 			widgetCode = "<input type='number' value='"+SET[k]+"'>";
+		}else if(v=="text"){
+			widgetCode = "<input type='text' value='"+SET[k]+"'>";
 		}
-		line = $("<tr><th>"+setName[k]+" <small>/"+k+"</small></th><td>"+widgetCode+"</td></tr>").appendTo("#optionslist");
+		desc = "/"+k;
+		if(k == "bitlyKey" || k == "bitlyUser") desc="";
+		line = $("<tr><th>"+setName[k]+" <small>"+desc+"</small></th><td>"+widgetCode+"</td></tr>").appendTo("#optionslist");
+		if(k == "bitlyKey") $("input", line).val(localStorage['bitlyKey']);
+		else if(k == "bitlyUser") $("input", line).val(localStorage['bitlyUser']);
 		$("input", line).change(function(){
 			if(v == "bool")
 				val = $(this).attr("checked");
 			else if(v == "number")
+				val = parseInt($(this).val());
+			else if(v == "text")
 				val = $(this).val();
-			SET[k] = val
-			localStorage['config'] = JSON.stringify(SET);
+			if(k == "bitlyKey"){
+				localStorage['bitlyKey'] = val
+			}else if(k == "bitlyUser"){
+				localStorage['bitlyUser'] = val
+			}else{
+				SET[k] = val
+				localStorage['config'] = JSON.stringify(SET);
+			}
 		})
 	})
 }

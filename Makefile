@@ -9,7 +9,8 @@ ifdef DEBUG
 endif
 
 all: | build appengine-install
-build: build-appengine build-mac ../twitica-full.zip
+#build: build-appengine build-mac ../twitica-full.zip
+build: ../twitica-full.zip
 debug: FLAGS += --formatting=PRETTY_PRINT --formatting=PRINT_INPUT_DELIMITER
 debug: build
 options_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js
