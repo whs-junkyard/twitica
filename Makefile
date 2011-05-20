@@ -8,7 +8,7 @@ ifdef DEBUG
 	FLAGS += --formatting=PRETTY_PRINT --formatting=PRINT_INPUT_DELIMITER
 endif
 
-all: | build appengine-install
+#all: | build appengine-install
 #build: build-appengine build-mac ../twitica-full.zip
 build: ../twitica-full.zip
 debug: FLAGS += --formatting=PRETTY_PRINT --formatting=PRINT_INPUT_DELIMITER

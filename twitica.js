@@ -193,6 +193,8 @@ function twcom(what, callback){
 		return Tw.post("favorites/create/"+what.id, null, callback);
 	}else if(what.type == "tw.unfav"){
 		return Tw.post("favorites/destroy/"+what.id, null, callback);
+	}else if(what.type == "tw.destroy"){
+		return Tw.post("statuses/destroy/"+what.id, null, callback);
 	}else if(TwPlusAPI == "chrome"){
 		id=new Date().getTime();
 		_twcom_callbacks[id] = callback || function(){};
@@ -880,6 +882,7 @@ function replyCur(){
 			&& ft.val() == "@"+twdata['user']['screen_name']+" "){
 		// reply to all
 		ppls = twdata['text'].match(/\B(@[a-z0-9_A-Z\/]+)/g);
+		if(!ppls) return;
 		ppls.unshift("@"+twdata['user']['screen_name']);
 		if(ppls && ppls.length > 0){
 			ppls = ppls.filter(function(x){if(x=="@"+accInfo['twitter']['username']) return false; else return true;});
@@ -934,11 +937,12 @@ function repeatCur(){
 					d = JSON.parse(d);
 				}catch(e){}
 				if(d['errors']) d['error'] = d['errors'];
+				if(d['error'].indexOf("sharing is not permissable for this status") == 0) d['error'] = "Did you already retweeted this? Are you retweeting your tweet?";
 				if(!d['error']){
 					notify("<div style='color: #afa'>Success! Retweeted</div>");
 					addTweet(d, true);
 				}else{
-					notify("<b>ERROR:</b> "+d['error']);
+					notify("<strong>ERROR:</strong> "+d['error']);
 				}
 			};
 			meta = {"id": targetId, "lat": geoPos[0], "long": geoPos[1]};
@@ -1051,6 +1055,7 @@ function twitterLoad(periodical, callback){
 	params = {user: $.query.get("user"), since_id: last_twitter_id || "0"}
 	if(!params.user) delete params.user;
 	if(params.since_id === "0") delete params.since_id;
+	if(params.user) params['include_rts'] = true;
 	twcom({type: "tw.refresh", data: {timeline: $.query.get("timeline")}, param: params}, loadCb);
 	if(!periodical && callback) callback();
 	if(periodical)
@@ -1116,11 +1121,7 @@ function chirpParse(d){
 			$(this).remove();
 			delete dataDiv[d['delete']['status']['id_str']];
 		});
-		if(dataDiv[d['delete']['status']['id_str']].nextAll().length == 0 &&
-			getCurrent().nextAll().length == 0
-		){
-			focus(getCurrent().prev());
-		}
+		focus(getCurrent().prev());
 		refocus();
 	}else if(d['direct_message']){
 		if(d['direct_message']['sender']['id'] == accInfo['twitter']['data']['id']) return;
@@ -1580,6 +1581,21 @@ $(function(){
 				}else{
 					notify("No links found");
 				}
+			}else if(e.which == 46){
+				var yourTweet = getCurrent().data("data")['user']['id'] == accInfo['twitter']['data']['id'];
+				var yourRT = !!getCurrent().data("data")['rtdata'] && getCurrent().data("data")['rtdata']['user']['id'] == accInfo['twitter']['data']['id'];
+				if(!yourTweet && !yourRT){
+					return notify("Cannot delete this tweet");
+				}
+				var d = getCurrent().data("data");
+				var id = d['id_str'];
+				if(d['rtdata']){
+					id = d['rtdata']['id_str'];
+				}
+				twcom({"type": "tw.destroy", "id": id}, function(d){
+					if(d['error']) notify(d['error']);
+					else notify("Tweet deleted.")
+				})
 			}
 		}
 		cmdKey = e.ctrlKey;
