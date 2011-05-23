@@ -65,9 +65,7 @@ showUser = function(user) {
 									Tw.consumer['tokenSecret']
 								]);
 								showUser();
-								if(TwPlusAPI == "mac" || TwPlusAPI == "appengine"){
-									window.location = "../index.html";
-								}
+								window.location = "../index.html";
 							});
 						});
 					}

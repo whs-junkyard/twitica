@@ -212,11 +212,10 @@ Twitter.prototype.post = function(){
  */
 Twitter.prototype.sign = function(url){
 	if(url === undefined) url = "https://api.twitter.com/1/account/verify_credentials.json";
-	if(url.indexOf("http://") != 0) url = "https://api.twitter.com/1/" + url + ".json";
+	if(url.indexOf("http://") != 0 && url.indexOf("https://") != 0) url = "https://api.twitter.com/1/" + url + ".json";
 	msg = {
 		"method": "GET",
-		"action": url,
-		"parameters": null
+		"action": url
 	};
 	reqBody = OAuth.formEncode(msg.parameters);
 	OAuth.completeRequest(msg, this.consumer);

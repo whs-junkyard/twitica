@@ -195,6 +195,8 @@ function twcom(what, callback){
 		return Tw.post("favorites/destroy/"+what.id, null, callback);
 	}else if(what.type == "tw.destroy"){
 		return Tw.post("statuses/destroy/"+what.id, null, callback);
+	}else if(what.type == "tw.echo"){
+		return callback(Tw.sign());
 	}else if(TwPlusAPI == "chrome"){
 		id=new Date().getTime();
 		_twcom_callbacks[id] = callback || function(){};
@@ -279,8 +281,8 @@ function isBlocked(user, src, txt, following){
 	});
 	// anti-spam
 	/** @type {boolean} */ var spam = false;
-	if(accInfo['twitter'] && !following && user && txt && src){
-		/** @const */ var threshold = 4;
+	/*if(accInfo['twitter'] && !following && user && txt && src){
+		var threshold = 4;
 		var current = 0;
 		if(src == "web") current += 1;
 		if(txt.indexOf("@"+accInfo['twitter']['username']) == 0) current += 2;
@@ -292,7 +294,7 @@ function isBlocked(user, src, txt, following){
 			spam=true;
 			console.log({"text": txt, "user": user, "src": src}, "spam");
 		}
-	}
+	}*/
 	return blocked || spam;
 }
 /**
@@ -841,7 +843,7 @@ function number_format (number, decimals, dec_point, thousands_sep) {
  * Set the text cursor to position
  * @param {Element} The textbox
  * @param {Integer} Position to move to
- * @todo Implement this as jQuery plugin
+ * TODO: Implement this as jQuery plugin
  */
 function setCaretTo(node, pos) {
 	var node = (typeof node == "string" || node instanceof String) ? document.getElementById(node) : node;
@@ -860,6 +862,48 @@ function setCaretTo(node, pos) {
 	}
 	return false;
 }
+
+/**
+ * Insert text at cursor
+ * @param {Element} The textbox
+ * @param {string} Text to insert
+ * @see http://stackoverflow.com/questions/1064089/inserting-a-text-where-cursor-is-using-javascript-jquery
+ * TODO: Implement this as jQuery plugin
+ */
+function insertAtCaret(txtarea,text) {
+    var scrollPos = txtarea.scrollTop;
+    var strPos = 0;
+    var br = ((txtarea.selectionStart || txtarea.selectionStart == '0') ? 
+        "ff" : (document.selection ? "ie" : false ) );
+    if (br == "ie") { 
+        txtarea.focus();
+        var range = document.selection.createRange();
+        range.moveStart ('character', -txtarea.value.length);
+        strPos = range.text.length;
+    }
+    else if (br == "ff") strPos = txtarea.selectionStart;
+	if(!strPos) strPos = 0;
+ 
+    var front = (txtarea.value).substring(0,strPos);  
+    var back = (txtarea.value).substring(strPos,txtarea.value.length); 
+    txtarea.value=front+text+back;
+    strPos = strPos + text.length;
+    if (br == "ie") { 
+        txtarea.focus();
+        var range = document.selection.createRange();
+        range.moveStart ('character', -txtarea.value.length);
+        range.moveStart ('character', strPos);
+        range.moveEnd ('character', 0);
+        range.select();
+    }
+    else if (br == "ff") {
+        txtarea.selectionStart = strPos;
+        txtarea.selectionEnd = strPos;
+        txtarea.focus();
+    }
+    txtarea.scrollTop = scrollPos;
+}
+
 /**
  * Reply to the selected message
  */
@@ -1088,7 +1132,8 @@ var CHDfriends;
 function chirpParse(d){
 	if(d['text']){
 		last_twitter_id = d['id_str'];
-		d.user.following = CHDfriends.indexOf(d['user']['id']) != -1;
+		if(CHDfriends)
+			d['user']['following'] = CHDfriends.indexOf(d['user']['id']) != -1;
 		addTweet(d);
 	}else if(d['friends']){
 		CHDfriends = d['friends'];
@@ -1154,6 +1199,8 @@ function chirpLastMessage(res){
 				chirpParse(JSON.parse(buffer)); // then parse it
 			}catch(e){
 				if(me.replace(/^\s+|\s+$/, '') == ""){
+					CHD.connected=  false;
+					CHD.xhr.abort();
 					console.error(e);
 					console.log(buffer, me);
 				}
@@ -1196,6 +1243,9 @@ function chirpConnect(){
 		method: "GET",
 		action: "https://userstream.twitter.com/2/user.json?with=users"
 	}
+	if($.query.get("timeline") == "sample"){
+		msg['action'] = "http://stream.twitter.com/1/statuses/sample.json"
+	}
 	reqBody = OAuth.formEncode(msg.parameters);
 	OAuth.completeRequest(msg, Tw.consumer);
 	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
@@ -1232,6 +1282,7 @@ function chirpConnect(){
 			clearTimeout(CHDtimeout); chirpTimeout();
 			chirpLastMessage(CHD.xhr.responseText);
 		}else if(CHD.xhr.readyState == 4){
+			clearTimeout(chirpClearFallback);
 			CHD.connected = false;
 			if(CHDresetting) return;
 			notify("Twitter stream Error! Will retry in "+chirpFallback+"s");
@@ -1973,7 +2024,7 @@ $(function(){
 	
 	
 	// HTML5 drop file upload
-	if((new XMLHttpRequest).send && false){
+	if((new XMLHttpRequest).send){
 		function notifyDrag(e){
 			$("#dropMe").show();
 			e.stopPropagation();
@@ -1990,32 +2041,29 @@ $(function(){
 			e.stopPropagation();
 			e.preventDefault();
 			$("#dropMe").fadeOut(1000);
-			console.log(e);
 			//if(e.dataTransfer.files.length == 0) return false;
 			file = e.dataTransfer.files[0];
 			notify("Uploading <strong>"+file.name+"</strong>");
 			// todo: confirmation
-			twcom({type:"echo"}, function(head){
-				reqBody = {
-					"key": "f34802b649652898869c2b9ea979d5bb",
-					"media": file
-				}
-				// putting this in TwPlus would be too complex to pass the file around
-				$.ajax({
-					"url": "http://api.twitpic.com/2/upload.json",
-					"type": "POST",
-					"beforeSend": function(x){
-						x.setRequestHeader("X-Auth-Service-Provider", "https://api.twitter.com/1/account/verify_credentials.json");
-						x.setRequestHeader("X-Verify-Credentials-Authorization", head);
-					},
-					"data": reqBody,
-					"error": function(x){
-						console.log(x.responseText);
-					},
-					"success": function(d){
-						console.log(d);
+			twcom({type: "tw.echo"}, function(head){
+				var data = new FormData();
+				data.append("key", "f34802b649652898869c2b9ea979d5bb");
+				data.append("media", file);
+				var req = new XMLHttpRequest();
+				req.open("POST", "http://api.twitpic.com/2/upload.json", true);
+				req.setRequestHeader("X-Auth-Service-Provider", "https://api.twitter.com/1/account/verify_credentials.json");
+				req.setRequestHeader("X-Verify-Credentials-Authorization", head);
+				req.onreadystatechange = function(){
+					if (req.readyState == 4) {
+						d = JSON.parse(req.responseText);
+						if(d['errors']){
+							return notify("<strong>ERROR:</strong> "+d['errors']['message']);
+						}else{
+							insertAtCaret($("footer textarea").get(0), d['url'])
+						}
 					}
-				});
+				}
+				req.send(data);
 			});
 		}, false);
 	}
@@ -2039,6 +2087,8 @@ $(function(){
 				}
 			});
 		});
+	}else if($.query.get("timeline") == "sample"){
+		chirp();
 	}else{
 		twitterLoad();
 	}
