@@ -1701,6 +1701,7 @@ $(function(){
 				notify("Shortening URLs");
 				$.each(urls, function(k, url){
 					if(!url) return;
+					if(url.match(/^http:\/\/j\.mp\//)) return;
 					twcom({'type': "shorten", 'url': url}, function(res){
 						ov = $("footer textarea").val();
 						ov = ov.replace(url, res['url']);
