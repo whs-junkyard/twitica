@@ -430,12 +430,12 @@ function scroll(a, ref){
 	if(ref !== false) refocus();
 	//if(isFocusing) unreadCount=[0,0];
 }
+var mobileWebKey;
 /**
  * Send message
  * @param {String} Message to send
  */
 function sendTweet(msg){
-	notify("Tweeting...");
 	cb = function(o){
 		try{
 			o = JSON.parse(o);
@@ -464,7 +464,43 @@ function sendTweet(msg){
 		"irp": in_reply_to,
 		"lat": geoPos[0], "long": geoPos[1]
 	};
-	twcom({type: "tw.update", data:reqData}, cb);
+	if(localStorage['mobileWeb'] && TwPlusAPI == "chrome"){
+		notify("Tweeting via mobile web...");
+		// 1: get authenticity token
+		if(!mobileWebKey){
+			$.get("https://mobile.twitter.com/", (function(reqData, d){
+				token = d.match(/auth_token: "(.*?)"/);
+				if(token){
+					mobileWebKey = token[1];
+					// yep, tweet.
+					$.post("https://mobile.twitter.com", {
+						"authenticity_token": mobileWebKey,
+						"tweet[text]": reqData['status'],
+						"tweet[in_reply_to_status_id]": reqData['irp'],
+						"tweet[lat]": reqData['lat'],
+						"tweet[long]": reqData['long']
+					}, function(d){
+						notify("Tweet should be sent!.")
+					})
+				}else{
+					notify("Cannot login to mobile web!");
+				}
+			}).bind(null, reqData))
+		}else{
+			$.post("https://mobile.twitter.com", {
+				"authenticity_token": mobileWebKey,
+				"tweet[text]": reqData['status'],
+				"tweet[in_reply_to_status_id]": reqData['irp'],
+				"tweet[lat]": reqData['lat'],
+				"tweet[long]": reqData['long']
+			}, function(d){
+				notify("Tweet should be sent!.")
+			})
+		}
+	}else{
+		notify("Tweeting...");
+		twcom({type: "tw.update", data:reqData}, cb);
+	}
 	
 	in_reply_to = null;
 }
@@ -1081,7 +1117,7 @@ function twitterLoad(periodical, callback){
 	loadCb=function(d){
 		notify("Twitter loaded...");
 		if(d['error'] || d['errors']){
-			notify("Twitter error!");
+			notify("<strong>ERROR:</strong> "+(d['error']||d['errors']));
 			return;
 		}
 		if(d.length == 0) return;
@@ -1162,12 +1198,14 @@ function chirpParse(d){
 		}
 	}else if(d['delete']){
 		if(dataDiv[d['delete']['status']['id_str']] === undefined) return;
+		if(getCurrent().data("data")['id_str'] == d['delete']['status']['id_str']){
+			focus(getCurrent().prev());
+			refocus();
+		}
 		dataDiv[d['delete']['status']['id_str']].slideUp(function(){
 			$(this).remove();
 			delete dataDiv[d['delete']['status']['id_str']];
 		});
-		focus(getCurrent().prev());
-		refocus();
 	}else if(d['direct_message']){
 		if(d['direct_message']['sender']['id'] == accInfo['twitter']['data']['id']) return;
 		comnotify("DM from "+d['direct_message']['sender_screen_name'], d['direct_message']['text']+" (press Ctrl/Cmd+. to view/reply)", d['direct_message']['sender']['profile_image_url']);
@@ -1308,11 +1346,6 @@ function chirp(){
 function search(dir){
 	// up; dir=true
 	keyword = $("footer textarea").val().toLowerCase()
-	if(keyword == "omg"){
-		// <Chicken7> *Guthix's voice* No! There must be balance, so you must receive any disclipining for your unbalanced remarks!
-		/* TODO: Guthix is unreliable when I pray. Saradomin is homo. Find a better god. */
-		notify("Oh my Guthix !<br>You discovered this easter egg!");
-	}
 	if(dir){
 		dirN = "above";
 	}else{
