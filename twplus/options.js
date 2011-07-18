@@ -86,7 +86,8 @@ setName = {
 	"doubletaprt": "Double tap to RT",
 	"notifyDuration": "Notification hide timer",
 	"bitlyUser": "Bit.ly Username",
-	"bitlyKey": "Bit.ly API Key"
+	"bitlyKey": "Bit.ly API Key",
+	"bitlyAPI": "Bit.ly API Endpoint"
 }
 setType = {
 	"bgimg": "bool",
@@ -98,7 +99,8 @@ setType = {
 	"doubletaprt": "bool",
 	"notifyDuration": "number",
 	"bitlyUser": "text",
-	"bitlyKey": "text"
+	"bitlyKey": "text",
+	"bitlyAPI": "text"
 }
 function showOptions(){
 	var SET;
@@ -111,6 +113,8 @@ function showOptions(){
 		localStorage['bitlyKey'] = ""
 	if(!localStorage['bitlyUser'])
 		localStorage['bitlyUser'] = ""
+	if(!localStorage['bitlyAPI'])
+		localStorage['bitlyAPI'] = ""
 	$.each(setType, function(k,v){
 		if(v == "bool"){
 			widgetCode = "<input type='checkbox' "+ (SET[k] ? " checked" : "") +">";
@@ -124,6 +128,7 @@ function showOptions(){
 		line = $("<tr><th>"+setName[k]+" <small>"+desc+"</small></th><td>"+widgetCode+"</td></tr>").appendTo("#optionslist");
 		if(k == "bitlyKey") $("input", line).val(localStorage['bitlyKey']);
 		else if(k == "bitlyUser") $("input", line).val(localStorage['bitlyUser']);
+		else if(k == "bitlyAPI") $("input", line).val(localStorage['bitlyAPI']);
 		$("input", line).change(function(){
 			if(v == "bool")
 				val = $(this).attr("checked");
@@ -135,6 +140,8 @@ function showOptions(){
 				localStorage['bitlyKey'] = val
 			}else if(k == "bitlyUser"){
 				localStorage['bitlyUser'] = val
+			}else if(k == "bitlyAPI"){
+				localStorage['bitlyAPI'] = val
 			}else{
 				SET[k] = val
 				localStorage['config'] = JSON.stringify(SET);

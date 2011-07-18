@@ -167,7 +167,8 @@ function twcom(what, callback){
 			data['x_login'] = localStorage['bitlyUser'];
 			data['x_apiKey'] = localStorage['bitlyKey'];
 		}
-		$.getJSON("https://api-ssl.bit.ly/v3/shorten", data, (function(how,d){
+		var endpoint = localStorage['bitlyAPI'] || "https://api-ssl.bit.ly/v3/shorten";
+		$.getJSON(endpoint, data, (function(how,d){
 			how({'url': d['data']['url'], 'old': what['url']});
 		}).bind(this, callback));
 	}else if(what.type == "ytplaying" && TwPlusAPI == "chrome"){
@@ -1489,8 +1490,6 @@ $(function(){
 	if(!localStorage['blockKey']) localStorage['blockKey'] = "";
 	if(!localStorage['config'])
 		localStorage['config'] = '{"nogeo": true}';
-	if(!localStorage['bitlyKey'])
-		localStorage['bitlyKey'] = "R_fe0508be39d31d16b36c8ae014d4bfc4"
 	SET = JSON.parse(localStorage['config']);
 	$("#dropMe,#help").hide();
 	if(TwPlusAPI == "chrome" && false){
