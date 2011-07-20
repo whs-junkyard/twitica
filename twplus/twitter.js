@@ -138,7 +138,7 @@ Twitter.prototype.oauth = function(callback){
 	}, (function(cb, res){
 		callback({
 			"data": res,
-			"url": "https://api.twitter.com/oauth/authenticate?oauth_token="+res['oauth_token']+"&oauth_callback=oob"
+			"url": "https://api.twitter.com/oauth/authorize?oauth_token="+res['oauth_token']
 		});
 	}).bind(this, callback));
 }

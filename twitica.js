@@ -672,7 +672,7 @@ function processMsg(d, kind){
 					}
 					handleGotStatus(origt);
 				};
-				if(kind == "twitter")
+				if(kind == "twitter" && $.query.get("timeline") != "sample")
 					twcom({type: "tw.status", data: d['in_reply_to_status_id_str']}, cb);
 			}
 			if(TwPlusAPI != "mac"){
