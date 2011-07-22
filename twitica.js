@@ -543,7 +543,7 @@ function processMsg(d, kind){
 		d['user'] = d['sender'];
 	}
 
-	d['html'] = $("<span>"+twttr.txt.autoLink(d['text'].replace(/</g, "&lt;").replace(/>/g, "&gt;"), {
+	d['html'] = $("<span>"+twttr.txt.autoLink(d['text'].replace(/&/g, "&amp;").replace(/&amp;lt;/g, "&lt;").replace(/&amp;gt;/g, "&gt;").replace(/</g, "&lt;").replace(/>/g, "&gt;"), {
 		extraHtml: " target=\"blank\"",
 		usernameUrlBase: "https://twitter.com/",
 		listUrlBase: "https://twitter.com/"
