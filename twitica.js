@@ -1481,7 +1481,7 @@ $(function(){
 			x.executeSql('DELETE FROM notices WHERE creation <= ?', [new Date().getTime() - (3600)], function(){}, function(){
 				x.executeSql('CREATE TABLE notices (id BIGINT PRIMARY KEY, data BLOB, kind TEXT, creation INTEGER)');
 			});
-			x.executeSql('SELECT * FROM following', null, function(){}, function(){
+			x.executeSql('SELECT * FROM following LIMIT 1', null, function(){}, function(){
 				localStorage['lastFollowLoad'] = 0;
 				x.executeSql('CREATE TABLE following (id BIGINT PRIMARY KEY, name TEXT, data BLOB, kind TEXT)');
 			})
@@ -1491,7 +1491,7 @@ $(function(){
 	if(!localStorage['config'])
 		localStorage['config'] = '{"nogeo": true}';
 	SET = JSON.parse(localStorage['config']);
-	$("#dropMe,#help").hide();
+	$("#dropMe,#help,#listpicker").hide();
 	if(TwPlusAPI == "chrome" && false){
 		$("#twiticom").get(0).onmouseup = function(){
 			d=JSON.parse(decodeURIComponent($(this).html()));
