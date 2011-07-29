@@ -9,9 +9,17 @@
 	<!--<script src="twitter.js" type="text/javascript"></script>-->
 	<script src="options.compiled.js" type="text/javascript"></script>
 	<style type="text/css">
-@font-face{
-	font-family: "Droid Sans";
-	src: url(../DroidSans.ttf);
+@font-face {
+  font-family: 'Droid Sans';
+  font-style: normal;
+  font-weight: bold;
+  src: local('Droid Sans Bold'), local('DroidSans-Bold'), url('../DroidSansBold.woff') format('woff');
+}
+@font-face {
+  font-family: 'Droid Sans';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Droid Sans'), local('DroidSans'), url('../DroidSans.woff') format('woff');
 }
 body{
 	font-family: "Droid Sans";
@@ -89,6 +97,9 @@ td{
 #optionslist{
 	width: 80%;
 	margin: auto;
+}
+#optionslist th{
+	font-weight: normal;
 }
 #optionslist input[type=text]{
 	width: 100%;

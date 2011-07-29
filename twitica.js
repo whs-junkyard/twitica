@@ -117,6 +117,8 @@ function twcom(what, callback){
 			return Tw.get("direct_messages", what.param, callback);
 		}else if(what.data.timeline == "favorites"){
 			return Tw.get("favorites", what.param, callback);
+		}else if(what.data.timeline == "list"){
+			return Tw.get("lists/statuses", what.param, callback)
 		}else{
 			if(what.data.timeline == "replies") what.data.timeline = "mentions";
 			if(["mentions", "retweets_of_me", "retweeted_to_me", "retweeted_by_me"].indexOf(what.data.timeline) != -1)
@@ -198,6 +200,8 @@ function twcom(what, callback){
 		return Tw.post("statuses/destroy/"+what.id, null, callback);
 	}else if(what.type == "tw.echo"){
 		return callback(Tw.sign());
+	}else if(what.type == "tw.lists"){
+		return Tw.get("lists/all", what.data, callback);
 	}else if(TwPlusAPI == "chrome"){
 		id=new Date().getTime();
 		_twcom_callbacks[id] = callback || function(){};
@@ -232,6 +236,14 @@ function comnotify(title, msg, icon){
  */
 function ungt(s){
 	return s.replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&quot;/g, "'").replace(/&quote;/g, '"').replace(/&amp;/g, "&");
+}
+/**
+ * Escape input
+ * @param {String} Input
+ * @returns {String} Unescaped string
+ */
+function addgt(s){
+	return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 /**
  * Return selected notice
@@ -543,7 +555,7 @@ function processMsg(d, kind){
 		d['user'] = d['sender'];
 	}
 
-	d['html'] = $("<span>"+twttr.txt.autoLink(d['text'].replace(/&/g, "&amp;").replace(/&amp;lt;/g, "&lt;").replace(/&amp;gt;/g, "&gt;").replace(/</g, "&lt;").replace(/>/g, "&gt;"), {
+	d['html'] = $("<span>"+twttr.txt.autoLink(d['text'], {
 		extraHtml: " target=\"blank\"",
 		usernameUrlBase: "https://twitter.com/",
 		listUrlBase: "https://twitter.com/"
@@ -1135,6 +1147,7 @@ function twitterLoad(periodical, callback){
 	};
 	params = {user: $.query.get("user"), since_id: last_twitter_id || "0"}
 	if(!params.user) delete params.user;
+	if($.query.get("timeline") == "list") params['list_id'] = $.query.get("id");
 	if(params.since_id === "0") delete params.since_id;
 	if(params.user) params['include_rts'] = true;
 	twcom({type: "tw.refresh", data: {timeline: $.query.get("timeline")}, param: params}, loadCb);
@@ -1453,6 +1466,35 @@ function loadFollowing(){
 	}
 	twcom({type: "tw.friends", "data": {"cursor": -1}}, handleGotPage);
 }
+/**
+ * Load list of lists that the user subscribed to
+ * @see twLoadList
+ */
+function twLoadList(){
+	twcom({"type": "tw.lists"}, function(l){
+		localStorage['lists'] = JSON.stringify({
+			"lastLoad": new Date().getTime(),
+			"data": l
+		});
+		twDrawList();
+	});
+}
+/**
+ * Validate cache and make a list of lists that user subscribed to
+ * @see twLoadList
+ */
+function twDrawList(){
+	lists = JSON.parse(localStorage['lists']);
+	if(new Date().getTime() - lists['lastLoad'] > 3600 * 24 * 1000){
+		return twLoadList();
+	}
+	$("#listpicker ul").empty();
+	$.each(lists['data'], function(k,v){
+		$("<li />").html("@<strong>"+v['user']['screen_name']+"</strong>/"+v['slug']+" <span style='color:gray;'>"+v['name']+"</span>")
+			.appendTo("#listpicker ul").data("id", v['id_str']).data("name", v['full_name']);
+	});
+	$("#listpicker li:eq(0)").addClass("selected")
+}
 
 /**
  * Hightlight menu item a la Mac OS X
@@ -1515,8 +1557,10 @@ $(function(){
 	}
 	twcom({type: "tw.info"}, function(d){
 		accInfo = {"twitter": {"username": d['screen_name'], "data": d}};
-		// update the page title to the beta status if detected
-		titleAdd = " ";
+		if(TwPlusAPI == "")
+			titleAdd = " [Trunk]";
+		else
+			titleAdd = "";
 		if($.query.get("timeline") == "replies"){
 			document.title = "Mentions to @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}else if($.query.get("timeline") == "dm"){
@@ -1525,6 +1569,8 @@ $(function(){
 			document.title = "@"+$.query.get("user")+" from @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}else if($.query.get("timeline") == "favorites"){
 			document.title = "Favorites of @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
+		}else if($.query.get("timeline") == "list"){
+			document.title =  $.query.get("title")+" from @"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}else{
 			document.title = "@"+d['screen_name']+" | Twitica Desktop"+titleAdd;
 		}
@@ -1558,6 +1604,11 @@ $(function(){
 		});
 		$("footer textarea").attr("placeholder", "Press ⌘H for help.");
 	}
+	if(!localStorage['lists']){
+		twLoadList();
+	}else{
+		twDrawList();
+	}
 	/**
 	 * Shuffle array
 	 * @see http://stackoverflow.com/questions/962802/is-it-correct-to-use-javascript-array-sort-method-for-shuffling
@@ -1575,15 +1626,16 @@ $(function(){
 	    return array;
 	}
 	var tipList = shuffle([
-		"This application have easter eggs!",
 		"/bgimg might slow down your computer",
-		"Read changelogs at #TwiticaDesktop",
-		"Click user's avatar to open their timeline",
+		"Read changelogs at @TwiticaDesktop",
+		"Click any user's avatar to open their timeline",
 		"Ctrl/Cmd+Click on image link to open in tab",
-		"Feature request and bug report at @manatsawin",
+		"Drag and drop image to upload to Twitpic",
+		"Feature request and bug report to @manatsawin",
 		"Press on <img src='marker.png' /> to view map",
 		"Press Ctrl/Cmd+y two times to reply to all",
-		"Help improve Twitica Desktop by using /report your comment"
+		"Help improve Twitica Desktop by using /report your comment",
+		"Follow @TwiticaDesktop for updates (please report bugs to @manatsawin)"
 	]);
 	function updateTOTD(){
 		tip = tipList.shift();
@@ -1633,7 +1685,25 @@ $(function(){
 		isFocusing = true;
 		if(e.target.type == "text" || e.target.type == "password") return;
 		kmul = konami ? -1 : 1;
-		if($("footer textarea").val().length == 0 || e.which == 33 || e.which == 34){
+		if($("#listpicker:visible").length >= 1 && (e.which == 38 || e.which == 40 || e.which == 13)){
+			if(e.which == 13){
+				id = $("#listpicker li.selected").data("id");
+				title = $("#listpicker li.selected").data("name");
+				$("#listpicker").hide();
+				window.open("?timeline=list&id="+id+"&title="+encodeURIComponent(title), 'list_'+id, "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+				e.preventDefault();
+			}else{
+				e.preventDefault();
+				current = $("#listpicker li.selected");
+				if(e.which == 40 && current.next().length > 0){
+					current.next().addClass("selected");
+					current.removeClass("selected");
+				}else if(e.which == 38 && current.prev().length > 0){
+					current.prev().addClass("selected");
+					current.removeClass("selected");
+				}
+			}
+		}else if($("footer textarea").val().length == 0 || e.which == 33 || e.which == 34){
 			if(e.which == 38 || e.which == 33 || e.which == 40 || e.which == 34){
 				e.preventDefault();
 				if(e.which == 38)
@@ -1762,6 +1832,10 @@ $(function(){
 			}else if(e.which == 79){
 				quoteCur();
 				e.preventDefault();
+			}else if(e.which == 76){
+				$("#listpicker li").removeClass("selected");
+				$("#listpicker li:eq(0)").addClass("selected")
+				$("#listpicker").fadeToggle(250);
 			}
 		}
 		if(e.which == 9){
