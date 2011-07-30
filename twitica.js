@@ -740,6 +740,10 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 		d['source'] = "";
 	}
 	if(dentsRendered.indexOf(d['id_str']) != -1) return;
+	if(SET['nort'] && d['retweeted_status']){
+		if(dentsRendered.indexOf(d['retweeted_status']['id_str']) != -1) return;
+		dentsRendered.push(d['retweeted_status']['id_str']);
+	}
 	if(!d['sender']){
 		if(isBlocked(d['user']['screen_name'], ungt(d['source']), ungt(d['text']), d['user']['following'])){
 			return;
@@ -1841,7 +1845,7 @@ $(function(){
 		if(e.which == 9){
 			var mentioning = getMentioning();
 		}
-		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor", "report", "doubletaprt"].sort();
+		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor", "report", "doubletaprt", "nort"].sort();
 		if(TwPlusAPI != "chrome"){
 			cmds.remove(cmds.indexOf("ytplaying"));
 		}
@@ -1898,7 +1902,7 @@ $(function(){
 				})
 				e.preventDefault();
 				return;
-			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor|doubletaprt)(?: +|$)/)){
+			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor|doubletaprt|nort)(?: +|$)/)){
 				toggleSet  = toggleSet[1];
 				SET[toggleSet] = !SET[toggleSet]
 				localStorage['config'] = JSON.stringify(SET);
@@ -1909,7 +1913,8 @@ $(function(){
 					"nogeo": "Disable geolocation",
 					"rightside": "Own avatar at right",
 					"usercolor": "Colored nick",
-					"doubletaprt": "Double tap to RT"
+					"doubletaprt": "Double tap to RT",
+					"nort": "Hide retweets of messages already read"
 				}
 				if(SET[toggleSet] == true) notify(setName[toggleSet]+" <strong>ON</strong>");
 				else notify(setName[toggleSet]+" <strong>OFF</strong>");
