@@ -126,7 +126,7 @@ function twcom(what, callback){
 			else
 				apiName = what.data.timeline+"_timeline";
 			if(!what.param) what.param = {};
-			//what.param["include_entities"] = true;
+			what.param["include_entities"] = true;
 			return Tw.get("statuses/"+apiName, what.param, callback);
 		}
 	}else if(what.type == "tw.status"){
@@ -134,7 +134,7 @@ function twcom(what, callback){
 			console.error("No OAuth!");
 			return false;
 		}
-		return Tw.get("statuses/show/"+what.data, null, callback);
+		return Tw.get("statuses/show/"+what.data, {"include_entities": true}, callback);
 	}else if(what.type == "tw.update"){
 		if(!Tw){
 			console.error("No OAuth!");
@@ -145,7 +145,7 @@ function twcom(what, callback){
 		if(what.data['irp']) data['in_reply_to_status_id'] = what.data['irp'];
 		if(what.data['lat']) data.lat = what.data['lat'];
 		if(what.data['long']) data['long'] = what.data['long'];
-		//data["include_entities"] = true;
+		data["include_entities"] = true;
 		return Tw.post("statuses/update", data, callback);
 	}else if(what.type == "tw.retweet"){
 		if(!Tw){
@@ -155,7 +155,7 @@ function twcom(what, callback){
 		data = {};
 		if(what.data.lat) data.lat = what.data.lat;
 		if(what.data['long']) data['long'] = what.data['long'];
-		//data["include_entities"] = true;
+		data["include_entities"] = true;
 		return Tw.post("statuses/retweet/"+what.data.id, data, callback);
 	}else if(what.type == "shorten"){
 		var data = {
@@ -521,6 +521,19 @@ function color_of(name){
 	return rcolors[sum];
 }
 /**
+ * Remove t.co
+ */
+function unEntities(html, data){
+	console.log(data);
+	ent = data['entities'];
+	if(!ent) return html;
+	ent['urls'].forEach(function(v){
+		console.log(v);
+		html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1 style='color: #efefef;'>"+v['display_url']+"</a>");
+	});
+	return html;
+}
+/**
  * Draw and process a message
  * @private
  *
@@ -540,11 +553,11 @@ function processMsg(d, kind){
 		d['user'] = d['sender'];
 	}
 
-	d['html'] = $("<span>"+twttr.txt.autoLink(d['text'], {
+	d['html'] = $("<span>"+unEntities(twttr.txt.autoLink(d['text'], {
 		extraHtml: " target=\"blank\"",
 		usernameUrlBase: "https://twitter.com/",
 		listUrlBase: "https://twitter.com/"
-	}).replace("\n", "<br />")+"</span>");
+	}).replace("\n", "<br />"), d)+"</span>");
 	if(!d['user']['profile_url']){
 		if(kind == "twitter")
 			d['user']['profile_url'] = "https://twitter.com/"+d['user']['screen_name'];
@@ -2211,7 +2224,7 @@ $(function(){
 					twitterLoad();
 				}
 			});
-		}, function(x){notify(x['message']);});
+		}, function(x){notify(x['message']+". You should reinstall Twitica Desktop.");});
 	}else if($.query.get("timeline") == "sample"){
 		chirp();
 	}else{
