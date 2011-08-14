@@ -527,7 +527,7 @@ function unEntities(html, data){
 	ent = data['entities'];
 	if(!ent) return html;
 	ent['urls'].forEach(function(v){
-		if(ImageLoader.getProvider(v['expanded_url'])){
+		if(ImageLoader['getProvider'](v['expanded_url'])){
 			// supported provider. Full link.
 			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' style='color: #efefef;' data-click='true'>"+v['expanded_url']+"</a>");
 		}else{
