@@ -173,21 +173,6 @@ function twcom(what, callback){
 		$.getJSON(endpoint, data, (function(how,d){
 			how({'url': d['data']['url'], 'old': what['url']});
 		}).bind(this, callback));
-	}else if(what.type == "ytplaying" && TwPlusAPI == "chrome"){
-		// find yt window
-		var out = [];
-		chrome.windows.getAll({"populate": true}, function(wnds){
-			wnds.forEach(function(wnd){
-				wnd['tabs'].forEach(function(tab){
-					if(tab['url'].match(/^http[s]*:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab['title'] != ""){
-						url = tab['url'].match(/^http[s]*:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
-						url = "http://youtu.be/"+url;
-						out.push({"title": tab['title'].split("YouTube - ")[1], "url": url});
-					}
-				});
-			});
-			callback(out);
-		});
 	}else if(what.type == "tw.friends"){
 		return Tw.get("statuses/friends", what.data, callback);
 	}else if(what.type == "refocus" && TwPlusAPI == "mac"){
@@ -1689,16 +1674,28 @@ $(function(){
 		isFocusing = true;
 		if(e.target.type == "text" || e.target.type == "password") return;
 		kmul = konami ? -1 : 1;
-		if($("#listpicker:visible").length >= 1 && (e.which == 38 || e.which == 40 || e.which == 13)){
+		if($(".picker:visible").length >= 1 && (e.which == 38 || e.which == 40 || e.which == 13 || e.which == 27)){
+			thisPicker = $(".picker:visible");
 			if(e.which == 13){
-				id = $("#listpicker li.selected").data("id");
-				title = $("#listpicker li.selected").data("name");
-				$("#listpicker").hide();
-				window.open("?timeline=list&id="+id+"&title="+encodeURIComponent(title), 'list_'+id, "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
+				if(thisPicker.attr("id") == "listpicker"){
+					id = $("li.selected", thisPicker).data("id");
+					title = $("li.selected", thisPicker).data("name");
+					window.open("?timeline=list&id="+id+"&title="+encodeURIComponent(title), 'list_'+id, "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());	
+				}else if(thisPicker.attr("id") == "ytpicker"){
+					out = $("li.selected", thisPicker).data("data");
+					$("footer textarea").val("#nowplaying " + out['title'] + " " + out['url']);
+					thisPicker.remove();
+					e.preventDefault();
+					return; // or else it would tweet
+				}
+				thisPicker.hide();
+				e.preventDefault();
+			}else if(e.which == 27){
+				thisPicker.fadeOut();
 				e.preventDefault();
 			}else{
 				e.preventDefault();
-				current = $("#listpicker li.selected");
+				current = $("li.selected", thisPicker);
 				if(e.which == 40 && current.next().length > 0){
 					current.next().addClass("selected");
 					current.removeClass("selected");
@@ -1851,19 +1848,35 @@ $(function(){
 		}
 		if(e.which == 13 && $("footer textarea").val().length > 0){
 			txt = $("footer textarea").val();
-			if($.trim(txt) == "/ytplaying"){
+			if($.trim(txt) == "/ytplaying" && TwPlusAPI == "chrome"){
 				e.preventDefault();
-				if(TwPlusAPI != "chrome"){
-					notify("Sorry, this command is only available on Chrome version");
-				}else{
-					twcom({type: "ytplaying"}, function(resp){
-						if(resp.length  > 1) notify("This command only works with only one YouTube tab.");
-						else if(resp.length == 0) notify("No YouTube open");
-						else{
-							$("footer textarea").val("#nowplaying " + resp[0]['title'] + " " + resp[0]['url']);
-						}
+				// find yt window
+				var out = [];
+				chrome.windows.getAll({"populate": true}, function(wnds){
+					wnds.forEach(function(wnd){
+						wnd['tabs'].forEach(function(tab){
+							if(tab['url'].match(/^http[s]*:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab['title'] != ""){
+								url = tab['url'].match(/^http[s]*:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
+								url = "http://youtu.be/"+url;
+								out.push({"title": tab['title'].split("YouTube - ")[1], "url": url});
+							}
+						});
 					});
-				}
+					if(out.length == 0){
+						notify("No YouTube tab open");
+					}else if(out.length == 1){
+						$("footer textarea").val("#nowplaying " + out[0]['title'] + " " + out[0]['url']);
+					}else{
+						$("footer textarea").val("");
+						// put it in list window!
+						ytlist = $("<div id='ytpicker' class='picker floatingbox'><h1>YouTube</h1><ul></ul></div>").hide().appendTo("body");
+						out.forEach(function(v){
+							$("<li />").text(v['title']).data("data", v).appendTo($("ul", ytlist));
+						})
+						$("li:eq(0)", ytlist).addClass("selected");
+						ytlist.fadeIn();
+					}
+				});
 				return;
 			}else if($.trim(txt).match(/^\/notifyduration/)){
 				arg = $.trim(txt).split(" ");
@@ -2198,7 +2211,7 @@ $(function(){
 					twitterLoad();
 				}
 			});
-		});
+		}, function(x){notify(x['message']);});
 	}else if($.query.get("timeline") == "sample"){
 		chirp();
 	}else{
