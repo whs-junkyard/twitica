@@ -524,12 +524,15 @@ function color_of(name){
  * Remove t.co
  */
 function unEntities(html, data){
-	console.log(data);
 	ent = data['entities'];
 	if(!ent) return html;
 	ent['urls'].forEach(function(v){
-		console.log(v);
-		html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1 style='color: #efefef;'>"+v['display_url']+"</a>");
+		if(ImageLoader.getProvider(v['expanded_url'])){
+			// supported provider. Full link.
+			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' style='color: #efefef;' data-click='true'>"+v['expanded_url']+"</a>");
+		}else{
+			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1 style='color: #efefef;'>"+v['display_url']+"</a>");
+		}
 	});
 	return html;
 }
