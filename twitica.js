@@ -527,6 +527,7 @@ function unEntities(html, data){
 	ent = data['entities'];
 	if(!ent) return html;
 	ent['urls'].forEach(function(v){
+		if(!v['expanded_url']) return true;
 		if(ImageLoader['getProvider'](v['expanded_url'])){
 			// supported provider. Full link.
 			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' style='color: #efefef;' data-click='true'>"+v['expanded_url']+"</a>");
@@ -1252,9 +1253,9 @@ function chirpLastMessage(res){
 		buffer += me;
 		// (this line trimmed is empty OR last character is }) AND the buffer is not blank
 		if((me.replace(/^\s+|\s+$/, '') == "" || me[me.length-1] == "}") && buffer.replace(/^\s+|\s+$/, '') != ""){
-			try{
+			//try{
 				chirpParse(JSON.parse(buffer)); // then parse it
-			}catch(e){
+			/*}catch(e){
 				if(me.replace(/^\s+|\s+$/, '') == ""){
 					CHD.connected=  false;
 					CHD.xhr.abort();
@@ -1262,7 +1263,7 @@ function chirpLastMessage(res){
 					console.log(buffer, me);
 				}
 				return;
-			}
+			}*/
 			CHDlastInd += buffer.length;
 			buffer = "";
 		}
@@ -1874,7 +1875,11 @@ $(function(){
 							if(tab['url'].match(/^http[s]*:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab['title'] != ""){
 								url = tab['url'].match(/^http[s]*:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
 								url = "http://youtu.be/"+url;
-								out.push({"title": tab['title'].split("YouTube - ")[1], "url": url});
+								title = tab['title'].split("YouTube - ")[1];
+								if(title === undefined){
+									title = tab['title'].split(" - YouTube")[0];
+								}
+								out.push({"title": title, "url": url});
 							}
 						});
 					});
