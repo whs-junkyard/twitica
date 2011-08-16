@@ -22,7 +22,7 @@ twplus/options.compiled.js.chrome twplus/options.compiled.js.mac twplus/options.
 		| grep -E 'twitter\.js|options\.js|ERROR|Exception' || true
 
 twitica_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js \
-	addAnimationFrame.js gmaps.js twitter-text-js/twitter-text.js shadowbox/shadowbox.js \
+	gmaps.js twitter-text-js/twitter-text.js shadowbox/shadowbox.js \
 	easing.js mousewheel.js query.js
 twitica_file_list = twplus/twitter.js imageloader.js twitica.js
 twitica_EXTERNS = ${foreach extern,$(twitica_externs_list),--externs $(extern)}
