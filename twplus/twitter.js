@@ -207,15 +207,18 @@ Twitter.prototype.post = function(){
 /**
  * Sign a request for OAuth Echo
  * @param {string} URL target
+ * @param {string} Method (defaults to GET)
+ * @param {Object} Parameters
  * @return {string} Signed header
  * @this {Twitter}
  */
-Twitter.prototype.sign = function(url){
+Twitter.prototype.sign = function(url, type, data){
 	if(url === undefined) url = "https://api.twitter.com/1/account/verify_credentials.json";
 	if(url.indexOf("http://") != 0 && url.indexOf("https://") != 0) url = "https://api.twitter.com/1/" + url + ".json";
 	msg = {
-		"method": "GET",
-		"action": url
+		"method": type || "GET",
+		"action": url,
+		"parameters": data
 	};
 	reqBody = OAuth.formEncode(msg.parameters);
 	OAuth.completeRequest(msg, this.consumer);

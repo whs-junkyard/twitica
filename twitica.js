@@ -146,7 +146,28 @@ function twcom(what, callback){
 		if(what.data['lat']) data.lat = what.data['lat'];
 		if(what.data['long']) data['long'] = what.data['long'];
 		data["include_entities"] = true;
-		return Tw.post("statuses/update", data, callback);
+		if(what.data['media']){
+			// handle media upload differently
+			endpoint = "https://upload.twitter.com/1/statuses/update_with_media.json";
+			var signature = Tw.sign(endpoint, "POST", {});
+			var fData = new FormData();
+			$.each(data, function(k,v){
+				fData.append(k,v);
+			})
+			fData.append("media[]", what.data['media']);
+			var req = new XMLHttpRequest();
+			req.open("POST", endpoint, true);
+			req.setRequestHeader("Authorization", signature);
+			req.onreadystatechange = (function(callback){
+				if (req.readyState == 4) {
+					d = JSON.parse(req.responseText);
+					return callback(d);
+				}
+			}).bind(null, callback);
+			req.send(fData);
+		}else{
+			return Tw.post("statuses/update", data, callback);
+		}
 	}else if(what.type == "tw.retweet"){
 		if(!Tw){
 			console.error("No OAuth!");
@@ -462,6 +483,9 @@ function sendTweet(msg){
 		"irp": in_reply_to,
 		"lat": geoPos[0], "long": geoPos[1]
 	};
+	if($("#imgattach").length > 0){
+		reqData['media'] = $("#imgattach").data("file");
+	}
 	if(localStorage['mobileWeb'] && TwPlusAPI == "chrome"){
 		notify("Tweeting via mobile web...");
 		// 1: get authenticity token
@@ -499,7 +523,9 @@ function sendTweet(msg){
 		notify("Tweeting...");
 		twcom({type: "tw.update", data:reqData}, cb);
 	}
-	
+	$("#imgattach").slideUp(function(){
+		$(this).remove();
+	});
 	in_reply_to = null;
 }
 /**
@@ -526,15 +552,22 @@ function color_of(name){
 function unEntities(html, data){
 	ent = data['entities'];
 	if(!ent) return html;
-	ent['urls'].forEach(function(v){
-		if(!v['expanded_url']) return true;
-		if(ImageLoader['getProvider'](v['expanded_url'])){
-			// supported provider. Full link.
-			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' data-click='true'>"+v['expanded_url']+"</a>");
-		}else{
-			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1>"+v['display_url']+"</a>");
-		}
-	});
+	if(ent['urls']){
+		ent['urls'].forEach(function(v){
+			if(!v['expanded_url']) return true;
+			if(ImageLoader['getProvider'](v['expanded_url'])){
+				// supported provider. Full link.
+				html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' data-click='true'>"+v['expanded_url']+"</a>");
+			}else{
+				html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1>"+v['display_url']+"</a>");
+			}
+		});
+	}
+	if(ent['media']){
+		ent['media'].forEach(function(v){
+			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['media_url_https']+"' data-click='true'>"+v['display_url']+"</a>");
+		})
+	}
 	return html;
 }
 /**
@@ -1036,7 +1069,7 @@ function repeatCur(){
 					d = JSON.parse(d);
 				}catch(e){}
 				if(d['errors']) d['error'] = d['errors'];
-				if(d['error'].indexOf("sharing is not permissable for this status") == 0) d['error'] = "Did you already retweeted this? Are you retweeting your tweet?";
+				if(d['error'] && d['error'].indexOf("sharing is not permissable for this status") == 0) d['error'] = "Did you already retweeted this? Are you retweeting your tweet?";
 				if(!d['error']){
 					notify("<div style='color: #afa'>Success! Retweeted</div>");
 					addTweet(d, true);
@@ -2115,16 +2148,20 @@ $(function(){
 		if(linkCheck(e) == false) return true;
 		if(this.href.match(/\.(png|jp[e]{0,1}g|gif|swf|flv)$/i)){
 			player = this.href;
-			if(player.indexOf(/\.(png|jp[e]{0,1}g|gif)$/i) != -1) player = "img";
-			else if(player.indexOf(/\.swf$/i) != -1) player = "swf";
-			else if(player.indexOf(/\.flv$/i) != -1) player = "flv";
+			if(player.match(/\.(png|jp[e]{0,1}g|gif)$/i)) player = "img";
+			else if(player.match(/\.swf$/i)) player = "swf";
+			else if(player.match(/\.flv$/i)) player = "flv";
 			else player = "iframe";
-			Shadowbox.open({
+			data = {
 				content: this.href,
 				player: player,
-				title: "Attachment",
-				"width": $(window).width() * 6/7, "height": $(window).height() * 3/4
-			});
+				title: "Attachment"
+			};
+			if(player == "iframe"){
+				data['width'] = $(window).width() * 6/7;
+				data['height'] = $(window).height() * 3/4;
+			}
+			Shadowbox.open(data);
 			e.preventDefault();
 		}else if(ImageLoader['getProvider'](this.href)){
 			if(linkCheck(e) == false) return true;
@@ -2170,27 +2207,26 @@ $(function(){
 	
 	
 	// HTML5 drop file upload
-	if((new XMLHttpRequest).send){
-		function notifyDrag(e){
-			$("#dropMe").show();
-			e.stopPropagation();
-			e.preventDefault();
-		};
-		function notifyDragOut(e){
-			$("#dropMe").hide();
-			e.stopPropagation();
-			e.preventDefault();
-		}
-		window.addEventListener("dragover", notifyDrag, false);
-		window.addEventListener("dragleave", notifyDragOut, false);
-		window.addEventListener("drop", function(e){
-			e.stopPropagation();
-			e.preventDefault();
-			$("#dropMe").fadeOut(1000);
-			//if(e.dataTransfer.files.length == 0) return false;
-			file = e.dataTransfer.files[0];
-			// todo: confirmation
-			/*twcom({type: "tw.echo"}, function(head){
+	function notifyDrag(e){
+		$("#dropMe").show();
+		e.stopPropagation();
+		e.preventDefault();
+	};
+	function notifyDragOut(e){
+		$("#dropMe").hide();
+		e.stopPropagation();
+		e.preventDefault();
+	}
+	window.addEventListener("dragover", notifyDrag, false);
+	window.addEventListener("dragleave", notifyDragOut, false);
+	window.addEventListener("drop", function(e){
+		e.stopPropagation();
+		e.preventDefault();
+		$("#dropMe").fadeOut(1000);
+		//if(e.dataTransfer.files.length == 0) return false;
+		file = e.dataTransfer.files[0];
+		if(localStorage['twitpic']){
+			twcom({type: "tw.echo"}, function(head){
 				var data = new FormData();
 				data.append("key", "f34802b649652898869c2b9ea979d5bb");
 				data.append("media", file);
@@ -2198,6 +2234,7 @@ $(function(){
 				req.open("POST", "http://api.twitpic.com/2/upload.json", true);
 				req.setRequestHeader("X-Auth-Service-Provider", "https://api.twitter.com/1/account/verify_credentials.json");
 				req.setRequestHeader("X-Verify-Credentials-Authorization", head);
+				notify("Uploading <strong>"+file.name+"</strong>");
 				req.onreadystatechange = function(){
 					if (req.readyState == 4) {
 						d = JSON.parse(req.responseText);
@@ -2209,9 +2246,9 @@ $(function(){
 					}
 				}
 				req.send(data);
-			});*/
+			});
+		}else{
 			if($("#imgattach").length > 0) $("#imgattach").remove();
-			console.log(file);
 			var dd = $("<div id='imgattach' />").hide().prependTo("footer");
 			dd.text(file.name).data("file", file);
 			$("<div />").css("color", "gray").text("Click to unattach.").appendTo(dd);
@@ -2227,8 +2264,8 @@ $(function(){
 				$("#imgattach").slideDown();
 			};
 			reader.readAsDataURL(file);
-		}, false);
-	}
+		}
+	}, false);
 	
 	if(!$.query.get("timeline") && TwPlusAPI != "mac"){
 		DB.transaction(function(x){
