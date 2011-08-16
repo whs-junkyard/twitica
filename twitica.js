@@ -1,4 +1,4 @@
-/** @define {string} API for cool features */ var TwPlusAPI="";
+/** @define {string} API for cool features */ var TwPlusAPI="chrome";
 /** @type {Object.<string, Object>} */
 var accInfo = {};
 /** @type {Array.<string>} */
@@ -530,9 +530,9 @@ function unEntities(html, data){
 		if(!v['expanded_url']) return true;
 		if(ImageLoader['getProvider'](v['expanded_url'])){
 			// supported provider. Full link.
-			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' style='color: #efefef;' data-click='true'>"+v['expanded_url']+"</a>");
+			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' data-click='true'>"+v['expanded_url']+"</a>");
 		}else{
-			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1 style='color: #efefef;'>"+v['display_url']+"</a>");
+			html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1>"+v['display_url']+"</a>");
 		}
 	});
 	return html;
@@ -2181,17 +2181,16 @@ $(function(){
 			e.stopPropagation();
 			e.preventDefault();
 		}
-		document.getElementById("body").addEventListener("dragover", notifyDrag, false);
-		document.getElementById("body").addEventListener("dragleave", notifyDragOut, false);
-		document.getElementById("body").addEventListener("drop", function(e){
+		window.addEventListener("dragover", notifyDrag, false);
+		window.addEventListener("dragleave", notifyDragOut, false);
+		window.addEventListener("drop", function(e){
 			e.stopPropagation();
 			e.preventDefault();
 			$("#dropMe").fadeOut(1000);
 			//if(e.dataTransfer.files.length == 0) return false;
 			file = e.dataTransfer.files[0];
-			notify("Uploading <strong>"+file.name+"</strong>");
 			// todo: confirmation
-			twcom({type: "tw.echo"}, function(head){
+			/*twcom({type: "tw.echo"}, function(head){
 				var data = new FormData();
 				data.append("key", "f34802b649652898869c2b9ea979d5bb");
 				data.append("media", file);
@@ -2210,7 +2209,24 @@ $(function(){
 					}
 				}
 				req.send(data);
-			});
+			});*/
+			if($("#imgattach").length > 0) $("#imgattach").remove();
+			console.log(file);
+			var dd = $("<div id='imgattach' />").hide().prependTo("footer");
+			dd.text(file.name).data("file", file);
+			$("<div />").css("color", "gray").text("Click to unattach.").appendTo(dd);
+			dd.click(function(){
+				$(this).slideUp(function(){
+					$(this).remove();
+				});
+			})
+			var reader = new FileReader();
+			reader['onload'] = function(e){
+				$("<img />").attr("src", e['target']['result']).prependTo("#imgattach");
+				$("<br />").css("clear", "both").appendTo("#imgattach");
+				$("#imgattach").slideDown();
+			};
+			reader.readAsDataURL(file);
 		}, false);
 	}
 	
