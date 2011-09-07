@@ -1,0 +1,7 @@
+{
+	"id": "th.in.whs.twitica.contrib.blockkeyword",
+	"name": "Block keywords",
+	"description": "Block keywords from appearing in your timeline",
+	"author": "Manatsawin Hanmongkolchai",
+	"files": ["BlockKeyword.js"]
+}

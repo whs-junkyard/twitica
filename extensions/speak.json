@@ -1,0 +1,7 @@
+{
+	"id": "th.in.whs.twitica.contrib.speak",
+	"name": "Speak",
+	"description": "Speak your tweets",
+	"author": "Manatsawin Hanmongkolchai",
+	"files": ["speak.js"]
+}
