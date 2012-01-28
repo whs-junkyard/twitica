@@ -75,7 +75,7 @@ Array.prototype.unique = function () {
  * @return {jQuery} The notification node
  */
 function notify(str){
-	e = $("<div class='notify'></div>").html(str).css("left", -1 * $(window).width()).appendTo("#notify");
+	var e = $("<div class='notify'></div>").html(str).css("left", -1 * $(window).width()).appendTo("#notify");
 	setTimeout(function(e){
 		e.css("left", 0);
 	}, 0, e);
@@ -433,7 +433,7 @@ function refocus(){
  * @param {boolean=} Do refocus() (default=true)
  */
 function scroll(a, ref){
-	e = getCurrent();
+	var e = getCurrent();
 	while(a != 0){
 		if(a < 0){
 			a+=1;
@@ -559,7 +559,7 @@ function unEntities(html, data){
 				// supported provider. Full link.
 				html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"' data-click='true'>"+v['expanded_url']+"</a>");
 			}else{
-				html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a$1>"+v['display_url']+"</a>");
+				html = html.replace(new RegExp("<a([^>]+)>"+v['url']+"</a>"), "<a href='"+v['expanded_url']+"'>"+v['display_url']+"</a>");
 			}
 		});
 	}
@@ -1362,12 +1362,12 @@ function chirpConnect(){
 				chirpConnected = new Date().getTime();
 				$("#refreshbut").parent().hide();
 				clearTimeout(CHDreset);
-				CHDreset = setTimeout(function(){
+				/*CHDreset = setTimeout(function(){
 					CHDresetting = true;
 					CHD.xhr.abort();
 					notify("Resetting user stream...");
 					chirpConnect();
-				}, 30*60*1000);
+				}, 30*60*1000);*/
 				chirpClearFallback = setTimeout(function(){chirpFallback = 2.5}, 5000);
 			}
 			clearTimeout(CHDtimeout); chirpTimeout();
@@ -1540,7 +1540,7 @@ function twDrawList(){
  * @param {string} jQuery Selector
  */
 function highlightMenu(sel){
-	e=$(sel).parent();
+	var e=$(sel).parent();
 	e.css({"background": "#666"});
 	setTimeout(function(){
 		e.attr("style", "");
