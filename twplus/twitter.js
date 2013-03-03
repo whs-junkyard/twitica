@@ -10,13 +10,12 @@ function prototype_update(array, args) {
 	return array;
 }
 function prototype_merge(array, args) {
-	slice = Array.prototype.slice;
-	array = slice.call(array, 0);
+	var slice = Array.prototype.slice, array = slice.call(array, 0);
 	return prototype_update(array, args);
 }
 Function.prototype.bind = function(context) {
 	//if (arguments.length < 2) return this;
-	slice = Array.prototype.slice;
+	var slice = Array.prototype.slice;
 	var __method = this, args = slice.call(arguments, 1);
 	return function() {
 		var a = prototype_merge(args, arguments);
@@ -24,8 +23,8 @@ Function.prototype.bind = function(context) {
 	}
 }
 /* prototypejs/src/lang/object.js */
-_toString = Object.prototype.toString, STRING_CLASS = '[object String]';
 function isString(object) {
+	var _toString = Object.prototype.toString, STRING_CLASS = '[object String]';
 	return _toString.call(object) === STRING_CLASS;
 }
 /* end */
@@ -73,9 +72,9 @@ function Twitter(accessKey, accessSecret){
 Twitter.prototype._makeRequest = function(msg, callback){
 	if(callback == undefined) callback = function(){}
 	msg.method = msg.method.toUpperCase();
-	reqBody = OAuth.formEncode(msg.parameters);
+	var reqBody = OAuth.formEncode(msg.parameters);
 	OAuth.completeRequest(msg, this.consumer);
-	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
+	var authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
 	return $.ajax({
 		"url": msg.action,
 		"type": msg.method,
@@ -89,7 +88,7 @@ Twitter.prototype._makeRequest = function(msg, callback){
 		},
 		"success": function(d){
 			if(isString(d)){
-				out = {}
+				var out = {}
 				$.each(OAuth.decodeForm(d), function(k,v){
 					out[v[0]] = v[1];
 				});
@@ -177,7 +176,7 @@ Twitter.prototype.oauth2 = function(pin, data, callback){
  * @this {Twitter}
  */
 Twitter.prototype._doRequest = function(type, url, params, callback){
-	if(url.indexOf("http://") != 0) url = "https://api.twitter.com/1/" + url + ".json";
+	if(url.indexOf("http://") != 0) url = "https://api.twitter.com/1.1/" + url + ".json";
 	if(callback == undefined) callback = function(){}
 	if($.isFunction(params)){callback = params; params = null;}
 	this._makeRequest({
@@ -185,7 +184,7 @@ Twitter.prototype._doRequest = function(type, url, params, callback){
 		"action": url,
 		"parameters": params
 	}, (/** @this {Twitter} */ function(res){
-		if(url == "https://api.twitter.com/1/account/verify_credentials.json")
+		if(url == "https://api.twitter.com/1.1/account/verify_credentials.json")
 			this.user = res;
 		callback(res);
 	}).bind(this));
@@ -213,15 +212,15 @@ Twitter.prototype.post = function(){
  * @this {Twitter}
  */
 Twitter.prototype.sign = function(url, type, data){
-	if(url === undefined) url = "https://api.twitter.com/1/account/verify_credentials.json";
-	if(url.indexOf("http://") != 0 && url.indexOf("https://") != 0) url = "https://api.twitter.com/1/" + url + ".json";
-	msg = {
+	if(url === undefined) url = "https://api.twitter.com/1.1/account/verify_credentials.json";
+	if(url.indexOf("http://") != 0 && url.indexOf("https://") != 0) url = "https://api.twitter.com/1.1/" + url + ".json";
+	var msg = {
 		"method": type || "GET",
 		"action": url,
 		"parameters": data
 	};
-	reqBody = OAuth.formEncode(msg.parameters);
+	var reqBody = OAuth.formEncode(msg.parameters);
 	OAuth.completeRequest(msg, this.consumer);
-	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
+	var authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
 	return authHeader;
 }

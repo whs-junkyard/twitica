@@ -1,37 +1,26 @@
-CC = ~/closure-compiler/compiler.jar
-FLAGS = --compilation_level ADVANCED_OPTIMIZATIONS
+CC = uglifyjs
+FLAGS = -m -c hoist_vars=true --lint
 BUILDDIR = /tmp/twiticabuild
 TMPDIR = /tmp/twiticabuild-chrome /tmp/twiticabuild-appengine ../Twitica\ Mac/twitica
 APPCFG = /opt/local/share/google_appengine/appcfg.py
 
 ifdef DEBUG
-	FLAGS += --formatting=PRETTY_PRINT --formatting=PRINT_INPUT_DELIMITER
+	FLAGS += -b
 endif
 
 #all: | build appengine-install
 #build: build-appengine build-mac ../twitica-full.zip
 build: ../twitica-full.zip
-debug: FLAGS += --formatting=PRETTY_PRINT --formatting=PRINT_INPUT_DELIMITER
+debug: FLAGS += -b
 debug: build
-options_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js
 options_file_list = twplus/twitter.js twplus/options.js
-options_EXTERNS = ${foreach extern,$(options_externs_list),--externs $(extern)}
-options_ARG = ${foreach file,$(options_file_list),--js $(file)}
 twplus/options.compiled.js.chrome twplus/options.compiled.js.mac twplus/options.compiled.js.appengine: twplus/options.js
-	java -jar $(CC) --define TwPlusAPI=\"$(TARGET)\" $(FLAGS) $(options_EXTERNS) $(options_ARG) --js_output_file $@ 2>&1 \
-		| grep -E 'twitter\.js|options\.js|ERROR|Exception' || true
+	$(CC) --source-map $@.map $(FLAGS) $(options_file_list) -d TwPlusAPI=\"$(TARGET)\" -o $@
 
-twitica_externs_list = ${wildcard extern/*} twplus/sha1.js twplus/oauth.js \
-	gmaps.js twitter-text-js/twitter-text.js shadowbox/shadowbox.js \
-	easing.js mousewheel.js query.js
 twitica_file_list = twplus/twitter.js imageloader.js twitica.js
-twitica_EXTERNS = ${foreach extern,$(twitica_externs_list),--externs $(extern)}
-twitica_ARG = ${foreach file,$(twitica_file_list),--js $(file)}
 
 twitica.compiled.js.chrome twitica.compiled.js.mac twitica.compiled.js.appengine: twitica.js
-	java -jar $(CC) --define TwPlusAPI=\"$(TARGET)\" $(FLAGS) $(twitica_EXTERNS) \
-		$(twitica_ARG) --js_output_file $@ 2>&1 \
-		| grep -E 'twitter\.js|imageloader\.js|twitica\.js|ERROR|Exception' || true
+	$(CC) --source-map $@.map $(FLAGS) $(twitica_file_list) -d TwPlusAPI=\"$(TARGET)\" -o $@
 
 $(TMPDIR) copy-appengine:
 	rm -rf $(DIST) || true

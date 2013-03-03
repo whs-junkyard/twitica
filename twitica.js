@@ -37,7 +37,6 @@ var starIcon = "<span title='Favorited' style='color:yellow; -webkit-text-stroke
 var isFocusing;
 /** @type {number} */
 var startTime = new Date().getTime()
-google.load("earth", "1");
 
 /**
  * Remove array's member
@@ -84,7 +83,7 @@ function notify(str){
 			$(this).remove();
 		});
 	}
-	hidet = setTimeout(hideE, 3000 + ($("#notify").children().length * 200), e);
+	var hidet = setTimeout(hideE, 3000 + ($("#notify").children().length * 200), e);
 	e.data("timeout", hidet);
 	e.click(function(){
 		clearTimeout($(this).data('timeout'));
@@ -116,15 +115,15 @@ function twcom(what, callback){
 		if(what.data.timeline == "dm"){
 			return Tw.get("direct_messages", what.param, callback);
 		}else if(what.data.timeline == "favorites"){
-			return Tw.get("favorites", what.param, callback);
+			return Tw.get("favorites/list", what.param, callback);
 		}else if(what.data.timeline == "list"){
 			return Tw.get("lists/statuses", what.param, callback)
 		}else{
 			if(what.data.timeline == "replies") what.data.timeline = "mentions";
-			if(["mentions", "retweets_of_me", "retweeted_to_me", "retweeted_by_me"].indexOf(what.data.timeline) != -1)
-				apiName = what.data.timeline;
+			if(["retweets_of_me"].indexOf(what.data.timeline) != -1)
+				var apiName = what.data.timeline;
 			else
-				apiName = what.data.timeline+"_timeline";
+				var apiName = what.data.timeline+"_timeline";
 			if(!what.param) what.param = {};
 			what.param["include_entities"] = true;
 			return Tw.get("statuses/"+apiName, what.param, callback);
@@ -147,8 +146,7 @@ function twcom(what, callback){
 		if(what.data['long']) data['long'] = what.data['long'];
 		data["include_entities"] = true;
 		if(what.data['media']){
-			// handle media upload differently
-			endpoint = "https://upload.twitter.com/1/statuses/update_with_media.json";
+			endpoint = "https://api.twitter.com/1.1/statuses/update_with_media.json";
 			var signature = Tw.sign(endpoint, "POST", {});
 			var fData = new FormData();
 			$.each(data, function(k,v){
@@ -160,7 +158,7 @@ function twcom(what, callback){
 			req.setRequestHeader("Authorization", signature);
 			req.onreadystatechange = (function(callback){
 				if (req.readyState == 4) {
-					d = JSON.parse(req.responseText);
+					var d = JSON.parse(req.responseText);
 					return callback(d);
 				}
 			}).bind(null, callback);
@@ -195,21 +193,21 @@ function twcom(what, callback){
 			how({'url': d['data']['url'], 'old': what['url']});
 		}).bind(this, callback));
 	}else if(what.type == "tw.friends"){
-		return Tw.get("statuses/friends", what.data, callback);
+		return Tw.get("friends/list", what.data, callback);
 	}else if(what.type == "refocus" && TwPlusAPI == "mac"){
 		return twmac.refocus(what.count, what.left, what.mention);
 	}else if(what.type == "tw.fav"){
-		return Tw.post("favorites/create/"+what.id, null, callback);
+		return Tw.post("favorites/create", {id: what.id}, callback);
 	}else if(what.type == "tw.unfav"){
-		return Tw.post("favorites/destroy/"+what.id, null, callback);
+		return Tw.post("favorites/destroy", {id: what.id}, callback);
 	}else if(what.type == "tw.destroy"){
 		return Tw.post("statuses/destroy/"+what.id, null, callback);
 	}else if(what.type == "tw.echo"){
 		return callback(Tw.sign());
 	}else if(what.type == "tw.lists"){
-		return Tw.get("lists/all", what.data, callback);
+		return Tw.get("lists/list", what.data, callback);
 	}else if(TwPlusAPI == "chrome"){
-		id=new Date().getTime();
+		var id=new Date().getTime();
 		_twcom_callbacks[id] = callback || function(){};
 		$("#twiticom").html(encodeURIComponent(JSON.stringify({id: id, data: what}))).mousedown();
 	}else{
@@ -226,7 +224,7 @@ function twcom(what, callback){
 function comnotify(title, msg, icon){
 	if(SET['notifyDuration'] === undefined) SET['notifyDuration'] = 3;
 	if(window.webkitNotifications){
-		noti = window.webkitNotifications.createNotification(icon, title, msg);
+		var noti = window.webkitNotifications.createNotification(icon, title, msg);
 		noti.show();
 		if(SET['notifyDuration'] !== undefined && SET['notifyDuration'] > 0)
 			setTimeout(function(){noti.cancel()}, SET['notifyDuration'] * 1000, noti);
@@ -274,24 +272,24 @@ function getCurrent(){
  * @return {Boolean} True if blocked
  */
 function isBlocked(user, src, txt, following){
-	keys = localStorage['blockKey'].split("||");
-	blocked = false;
+	var keys = localStorage['blockKey'].split("||");
+	var blocked = false;
 	keys.forEach(function(x){
 		x=$.trim(x); if(x=="") return;
 		if(x.match(/^user:/) && user){
-			usRegex = x.replace(/^user:/, "");
+			var usRegex = x.replace(/^user:/, "");
 			if(user.match(new RegExp(usRegex, "i"))){
 				console.log("blocked! user "+user+" matched "+x);
 				blocked = true;
 			}
 		}else if(x.match(/^src:/) && src){
-			usRegex = x.replace(/^src:/, "");
+			var usRegex = x.replace(/^src:/, "");
 			if(src.match(new RegExp(usRegex, "i"))){
 				console.log("blocked! src "+user+" matched "+x);
 				blocked = true;
 			}
 		}else if(txt){
-			reg = new RegExp(x, "i");
+			var reg = new RegExp(x, "i");
 			if(txt.match(reg)){
 				console.log("blocked! "+user+" matched "+x);
 				blocked = true;
@@ -329,11 +327,12 @@ function focus(e){
  * @see getCurrent
  */
 function refocus(){
-	title = document.title.replace(/^\(([\-0-9 !]+)\) /, "");
+	var title = document.title.replace(/^\(([\-0-9 !]+)\) /, "");
 	if(isFocusing) unreadCount=[0,0];
 	if(getCurrent().length == 0) focus($("#body article:first"));
 	var curPos = getCurrent().prevAll().length;
 	var lastId = $("#body article").length;
+	var count, left, mentionCnt, prefix="";
 	if(unreadCount[0] <= 0 || true){
 		if(!konami){
 			count = curPos+1;
@@ -369,7 +368,7 @@ function refocus(){
 		return 0;
 	}*/
 	
-	thisOne = getCurrent();
+	var thisOne = getCurrent();
 	if(SET['bgimg']){
 		if(!$("#body").hasClass("withbg")){
 			$("#body").addClass("withbg");
@@ -377,7 +376,7 @@ function refocus(){
 		try{
 			if(thisOne.data("data")['user']['profile_background_image_url'] != $("#bodyimg").data("img")){
 				$("#bodyimg").css("opacity", 0);
-				dd=$("<div id='bodyimg' class='bodyimgs'></div>").css({
+				var dd=$("<div id='bodyimg' class='bodyimgs'></div>").css({
 					"top": $("header").height(), "left": 0, "position": "fixed", "z-index": -100, "width": "100%", "height": "100%",
 					"background-image": "url("+thisOne.data("data")['user']['profile_background_image_url']+")",
 					"background-color": "#"+thisOne.data("data")['user']['profile_background_color'],
@@ -399,6 +398,7 @@ function refocus(){
 	if(navigator.userAgent.indexOf("Android") != -1) return 0;
 	// #thaiWitter
 	if(thisOne === undefined || thisOne.length==0) return 0;
+	var t,b,tt,bb,ot,speed,np,distance;
 	t = thisOne.offset().top;
 	b = t + thisOne.height();
 	tt = $("body").scrollTop() + thisOne.height() + 30;
@@ -455,7 +455,7 @@ var mobileWebKey;
  * @param {String} Message to send
  */
 function sendTweet(msg){
-	cb = function(o){
+	var cb = function(o){
 		try{
 			o = JSON.parse(o);
 		}catch(e){}
@@ -478,7 +478,7 @@ function sendTweet(msg){
 		// hey, put it out!
 		geoPos = [];
 	}
-	reqData = {
+	var reqData = {
 		"status": msg,
 		"irp": in_reply_to,
 		"lat": geoPos[0], "long": geoPos[1]
@@ -491,7 +491,7 @@ function sendTweet(msg){
 		// 1: get authenticity token
 		if(!mobileWebKey){
 			$.get("https://mobile.twitter.com/", (function(reqData, d){
-				token = d.match(/auth_token: "(.*?)"/);
+				var token = d.match(/auth_token: "(.*?)"/);
 				if(token){
 					mobileWebKey = token[1];
 					// yep, tweet.
@@ -550,7 +550,7 @@ function color_of(name){
  * Remove t.co
  */
 function unEntities(html, data){
-	ent = data['entities'];
+	var ent = data['entities'];
 	if(!ent) return html;
 	if(ent['urls']){
 		ent['urls'].forEach(function(v){
@@ -581,7 +581,7 @@ function processMsg(d, kind){
 	// Handle RT nicely
 	if(d['retweeted_status']){
 		if(dentsRendered.indexOf(d['retweeted_status']['id']) != -1) return "rendered";
-		rtData = $.extend(true, {}, d); // clone it!
+		var rtData = $.extend(true, {}, d); // clone it!
 		d = d['retweeted_status'];
 		d['rtdata'] = rtData;
 	}
@@ -609,10 +609,10 @@ function processMsg(d, kind){
 		}
 	}
 	
-	info = ['from '+ungt(d['source'])]
+	var info = ['from '+ungt(d['source'])]
 	
-	time = new Date(d['created_at']);
-	times = time.toLocaleTimeString();
+	var time = new Date(d['created_at']);
+	var times = time.toLocaleTimeString();
 	if(time.toLocaleDateString() != new Date().toLocaleDateString())
 		times = time.getDate() + "/" + time.getMonth() + "/" + (1900 + time.getYear()) + " " + times;
 	info.unshift("<time datetime='"+d['created_at']+"' pubdate><a href='"+d['url']+"'>"+times+"</a></time>");
@@ -627,7 +627,7 @@ function processMsg(d, kind){
 			$(".username:eq(0)", d['html']).addClass("noticebadge");
 			$(".username:eq(0)", d['html']).data("id", d['in_reply_to_status_id_str']).click(function(e){
 				if(e.ctrlKey) return true;
-				theDiv = dataDiv[$(this).data("id")];
+				var theDiv = dataDiv[$(this).data("id")];
 				if(!theDiv) return true;
 				else{
 					focus(theDiv);
@@ -637,7 +637,7 @@ function processMsg(d, kind){
 			});
 			$(".username:eq(0)", d['html']).attr("href", d['in_reply_to_status_url']);
 		}else{
-			irp = $("<span class='noticebadge irp'><a href='"+d['in_reply_to_status_url']+"'>» "+d['in_reply_to_screen_name']+"</a></span>");
+			var irp = $("<span class='noticebadge irp'><a href='"+d['in_reply_to_status_url']+"'>» "+d['in_reply_to_screen_name']+"</a></span>");
 			irp.data("id", d['in_reply_to_status_id_str'])
 			if(SET['usercolor'] && false){
 				irp.css("color", color_of(d['in_reply_to_screen_name']));
@@ -645,7 +645,7 @@ function processMsg(d, kind){
 			info.push(irp);
 		}
 	}
-	if(d['geo'])
+	/*if(d['geo'])
 		info.push($("<a href='#' title='Geolocation'><img src='marker.png'></a>").click(function(){
 			if(navigator.userAgent.indexOf("Android") != -1){
 				window.location = "http://maps.google.com/maps?q="+d['geo']['coordinates'][0]+","+d['geo']['coordinates'][1]+"&z=17";
@@ -670,27 +670,27 @@ function processMsg(d, kind){
 				}, 1200, geoMap); // somehow gMaps doesn't play nicely and need window resizing, but this trick use less CPU
 				return false;
 			}
-		}));
-	lock="";
+		}));*/
+	var lock="";
 	if(d['user']['protected']) lock += "<img src='lock.png' title='Protected Tweet' alt='Protected Tweet'> ";
 	if(d['favorited']) lock += starIcon;
 	if(d['rtdata']){
-		rtele = $("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
+		var rtele = $("<span class='noticebadge'>&#9851 "+d['rtdata']['user']['screen_name']+"</span>");
 		if(SET['usercolor']){
 			rtele.css("color", color_of(d['rtdata']['user']['screen_name']));
 		}
 		info.push(rtele);
 	}
 	
-	avatarLeft = '<td class="avatarbox"><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td>';
-	avatarRight = "";
-	tdClass = "";
+	var avatarLeft = '<td class="avatarbox"><a href="'+ d['user']['profile_url'] +'" target="_blank"><img src="'+d['user']['profile_image_url']+'" class="avatar" /></a></td>';
+	var avatarRight = "";
+	var tdClass = "";
 	if(SET['rightside'] && d['user']['id'] == accInfo['twitter']['data']['id']){
 		avatarRight = avatarLeft.replace('class="avatar"', 'class="avatarright"');
 		avatarLeft = "";
 		tdClass = "leftaligned"
 	}
-	dent = $('<article><table><tr>'+avatarLeft+'<td class="noticetdin '+tdClass+'">'
+	var dent = $('<article><table><tr>'+avatarLeft+'<td class="noticetdin '+tdClass+'">'
 		+ '<div><span class="tweeticon">'+lock+'</span><span class="user" title="'+d['user']['name']+'">'+d['user']['screen_name']+'</span> <span class="noticebody"></span> <span class="info"></span></div>'
 		+ '</td>'+avatarRight+'</tr></table></article>'
 	).data("data", d).data("id", d['id_str']);
@@ -711,7 +711,7 @@ function processMsg(d, kind){
 		}
 		if(!dataDiv[d['in_reply_to_status_id_str']]){
 			function tweetNotFound(){
-				cb=function(origt){
+				var cb=function(origt){
 					if(TwPlusAPI != "mac"){
 						DB.transaction(function(x){
 							x.executeSql("INSERT INTO notices (id, kind, data, creation) VALUES (?,?,?, ?)", [origt.id_str, kind, JSON.stringify(origt), new Date().getTime()]);
@@ -787,7 +787,7 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 	if(d['retweeted_status'] && isBlocked(d['retweeted_status']['user']['screen_name'])) return;
 	if(!$.query.get("timeline") && TwPlusAPI != "mac"){
 		DB.transaction(function(x){
-			nd = $.extend(true, {}, d);
+			var nd = $.extend(true, {}, d);
 			delete nd['html'];
 			try{delete nd['retweeted_status']['html'];}catch(e){}
 			try{
@@ -808,7 +808,7 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 	if(notifyMention== undefined) notifyMention = true;
 
 	/* now onto the big job */
-	dent=processMsg(d, kind);
+	var dent=processMsg(d, kind);
 	if(!dent){
 		return console.error(d, "Cannot render it properly!");
 	}
@@ -829,7 +829,7 @@ function addMsg(d, doScroll, eff, notifyMention, kind){
 	}
 	if(doScroll && getCurrent().nextAll().length == 1 && SET['autoscroll']){
 		focus(dent);
-		tout=0;
+		var tout=0;
 		if(eff)
 			tout = 1000;
 		setTimeout(function(){
@@ -873,7 +873,7 @@ function addTweet(d, doScroll, eff, notifyMention){
  */
 function showBio(user){
 	$("header #bio").remove();
-	ele = $('<div id="bio"><a href="#" class="biolink" target="_blank"><table class="userinfo"><tr><td><img src=""></td><td style="padding-left: 10px;"><div class="close"><a href="#">X</a></div><h1></h1><h2><span></span> <a href="#" target="_blank"></a></h2></td></tr></table></a><p class="bio"></p><p class="loc"></p><table class="stat"><tr><td><div></div>Tweets</td><td><div></div>Following</td><td><div></div>Followers</td><td><div></div>Listed</td><td><div><a href="#" target="_blank">&nbsp;</a></div>Klout</td></tr></table></div>').appendTo("header")
+	var ele = $('<div id="bio"><a href="#" class="biolink" target="_blank"><table class="userinfo"><tr><td><img src=""></td><td style="padding-left: 10px;"><div class="close"><a href="#">X</a></div><h1></h1><h2><span></span> <a href="#" target="_blank"></a></h2></td></tr></table></a><p class="bio"></p><p class="loc"></p><table class="stat"><tr><td><div></div>Tweets</td><td><div></div>Following</td><td><div></div>Followers</td><td><div></div>Listed</td><td><div><a href="#" target="_blank">&nbsp;</a></div>Klout</td></tr></table></div>').appendTo("header")
 	$(".close", ele).click(function(){
 		ele.slideUp(function(){ele.remove(); refocus();});
 	})
@@ -1013,7 +1013,7 @@ function replyCur(){
 	if(ft.data("elem") && ft.data("elem").selector == getCurrent().selector
 			&& ft.val() == "@"+twdata['user']['screen_name']+" "){
 		// reply to all
-		ppls = twdata['text'].match(/\B(@[a-z0-9_A-Z\/]+)/g);
+		var ppls = twdata['text'].match(/\B(@[a-z0-9_A-Z\/]+)/g);
 		if(!ppls) return;
 		ppls.unshift("@"+twdata['user']['screen_name']);
 		if(ppls && ppls.length > 0){
@@ -1048,7 +1048,7 @@ function repeatCur(){
 	if($.query.get("timeline") == "dm"){
 		return notify("Not applicable.");
 	}
-	type = getCurrent().data("type");
+	var type = getCurrent().data("type");
 	if(type == "twitter"){
 		if((getCurrent().data("data")['user']['protected'] && !getCurrent().data("data")['retweeted_status'])){ // rt always rt-able!
 			if(getCurrent().data("data")['user']['protected'])
@@ -1056,7 +1056,7 @@ function repeatCur(){
 			$("footer textarea").val("RT @"+getCurrent().data("data")['user']['screen_name']+" "+getCurrent().data("data")['text']);
 			return;
 		}
-		targetId = getCurrent().data("data")['id_str']
+		var targetId = getCurrent().data("data")['id_str']
 		if(tweetId != targetId) repeatTime = 0;
 		if(SET['doubletaprt'] && repeatTime < new Date().getTime() - 1000){
 			notify("Press again to retweet");
@@ -1064,7 +1064,7 @@ function repeatCur(){
 			tweetId = targetId;
 		}else{
 			notify("Retweeting...");
-			cb = function(d){
+			var cb = function(d){
 				try{
 					d = JSON.parse(d);
 				}catch(e){}
@@ -1077,7 +1077,7 @@ function repeatCur(){
 					notify("<strong>ERROR:</strong> "+d['error']);
 				}
 			};
-			meta = {"id": targetId, "lat": geoPos[0], "long": geoPos[1]};
+			var meta = {"id": targetId, "lat": geoPos[0], "long": geoPos[1]};
 			twcom({type: "tw.retweet", data: meta}, cb);
 		}
 	}
@@ -1089,7 +1089,7 @@ function quoteCur(){
 	if($.query.get("timeline") == "dm"){
 		return notify("Not applicable.");
 	}
-	type = getCurrent().data("type");
+	var type = getCurrent().data("type");
 	if(type == "twitter"){
 		if(getCurrent().data("data")['user']['protected'])
 			notify("<strong>WARN:</strong> Retweeting protected tweet")
@@ -1103,8 +1103,8 @@ function favCur(){
 	if($.query.get("timeline") == "dm"){
 		return notify("Not applicable.");
 	}
-	cur = getCurrent();
-	data = cur.data("data");
+	var cur = getCurrent();
+	var data = cur.data("data");
 	function updateDB(d){
 		// add/remove star
 		if(d['favorited']){
@@ -1166,7 +1166,7 @@ function twitterLoad(periodical, callback){
 	twFirstLoadDone = true;
 	clearTimeout(twloadtimeout);
 	notify("Refreshing tweets...");
-	loadCb=function(d){
+	var loadCb=function(d){
 		notify("Twitter loaded...");
 		if(d['error'] || d['errors']){
 			notify("<strong>ERROR:</strong> "+(d['error']||d['errors']));
@@ -1184,7 +1184,7 @@ function twitterLoad(periodical, callback){
 			setTimeout(focus, 1000, $("#body article:last"))
 		}
 	};
-	params = {user: $.query.get("user"), since_id: last_twitter_id || "0"}
+	var params = {user: $.query.get("user"), since_id: last_twitter_id || "0"}
 	if(!params.user) delete params.user;
 	if($.query.get("timeline") == "list") params['list_id'] = $.query.get("id");
 	if(params.since_id === "0") delete params.since_id;
@@ -1197,9 +1197,9 @@ function twitterLoad(periodical, callback){
 window['loadTestData'] = function(url){
 	notify("Loading test data...")
 	$.getJSON("http://t.whsgroup.ath.cx/"+url, function(d){
-		t = new Date().getTime();
+		var t = new Date().getTime();
 		notify("Test data loaded!");
-		d = d.reverse();
+		var d = d.reverse();
 		$.each(d, function(k,v){addTweet(v);});
 		refocus();
 		if(getCurrent().nextAll().length > 0 && SET['autoscroll']){
@@ -1230,7 +1230,7 @@ function chirpParse(d){
 			DB.transaction(function(x){
 				x.executeSql("SELECT * FROM following", null, function(x, rs){
 					rs = rs.rows;
-					for(i=0; i<rs.length; i++){
+					for(var i=0; i<rs.length; i++){
 						d = rs.item(i);
 						if(CHDfriends.indexOf(d['id']) == -1){
 							// user have unfollowed, remove target
@@ -1280,7 +1280,7 @@ function chirpParse(d){
 var CHDlastInd = 0;
 function chirpLastMessage(res){
 	// clone of parser algorithm 2 in chirp.js
-	d=res.replace(/^\s+|\s+$/, '').substring(CHDlastInd).split(/([\r\n]+|$)/);
+	var d=res.replace(/^\s+|\s+$/, '').substring(CHDlastInd).split(/([\r\n]+|$)/);
 	var buffer = "";
 	d.forEach(function(me){ // for each un-parsed line
 		buffer += me;
@@ -1330,16 +1330,16 @@ function chirpTimeout(){
  * @see chirp
  */
 function chirpConnect(){
-	msg = {
+	var msg = {
 		method: "GET",
-		action: "https://userstream.twitter.com/2/user.json?with=users"
+		action: "https://userstream.twitter.com/1.1/user.json?with=followings"
 	}
 	if($.query.get("timeline") == "sample"){
-		msg['action'] = "http://stream.twitter.com/1/statuses/sample.json"
+		msg['action'] = "http://stream.twitter.com/1.1/statuses/sample.json"
 	}
-	reqBody = OAuth.formEncode(msg.parameters);
+	var reqBody = OAuth.formEncode(msg.parameters);
 	OAuth.completeRequest(msg, Tw.consumer);
-	authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
+	var authHeader = OAuth.getAuthorizationHeader("", msg.parameters);
 	CHD.connected = false;
 	CHD.xhr.open("GET", msg.action, true);
 	CHD.xhr.setRequestHeader("Authorization", authHeader);
@@ -1398,16 +1398,16 @@ function chirp(){
  */
 function search(dir){
 	// up; dir=true
-	keyword = $("footer textarea").val().toLowerCase()
+	var keyword = $("footer textarea").val().toLowerCase(), dirN;
 	if(dir){
 		dirN = "above";
 	}else{
 		dirN = "below";
 	}
-	ele = getCurrent();
-	lastEle = ele.data("id");
-	count = 0;
-	maxCount = ele.prevAll().length;
+	var ele = getCurrent();
+	var lastEle = ele.data("id");
+	var count = 0;
+	var maxCount = ele.prevAll().length;
 	while(count <= maxCount){
 		count += 1;
 		if(dir){
@@ -1431,8 +1431,8 @@ var geoPollerID=undefined;
  */
 function geoPoller(){
 	geoPollerID = geo.watchPosition(function(pos){
-		lat = Math.round(pos.coords.latitude*Math.pow(10,3))/Math.pow(10,3)
-		lon = Math.round(pos.coords.longitude*Math.pow(10,3))/Math.pow(10,3)
+		var lat = Math.round(pos.coords.latitude*Math.pow(10,3))/Math.pow(10,3)
+		var lon = Math.round(pos.coords.longitude*Math.pow(10,3))/Math.pow(10,3)
 		if(accInfo['twitter']['data']['id_str'] == "73110871"){
 			lat = 37.52729;
 			lon = 127.043576;
@@ -1440,13 +1440,13 @@ function geoPoller(){
 		if(lat && lon && lat !== 0 && lon !== 0){
 			geoPos = [lat, lon];
 			if((geoPos[0] != lat && geoPos[1] != lon) || $("#geoloc").html() == ""){
-				mapCallback = function(res){
+				var mapCallback = function(res){
 					if(res['results'].length == 0){
 						res['results'][0] = {"formatted_address": geoPos.join(", ")};
 					}
 					$("#geoloc").html("<img src='marker.png' />"+res['results'][0]['formatted_address'])
 						.attr("title", res['results'][0]['formatted_address']);
-					$("#geoloc").click(function(){
+					/*$("#geoloc").click(function(){
 						if(navigator.userAgent.indexOf("Android") != -1){
 							window.location = "http://maps.google.com/maps?q="+lat+","+lon+"&z=17";
 							return false;
@@ -1475,7 +1475,7 @@ function geoPoller(){
 							});
 						}, 1200, geoMap);
 						return false;
-					});
+					});*/
 				};
 				twcom({type: "geo", data: {"latlng": lat+","+lon}}, mapCallback);
 			}
@@ -1523,7 +1523,7 @@ function twLoadList(){
  * @see twLoadList
  */
 function twDrawList(){
-	lists = JSON.parse(localStorage['lists']);
+	var lists = JSON.parse(localStorage['lists']);
 	if(new Date().getTime() - lists['lastLoad'] > 3600 * 24 * 1000){
 		return twLoadList();
 	}
@@ -1575,13 +1575,13 @@ $(function(){
 	$("#dropMe,#help,#listpicker").hide();
 	if(TwPlusAPI == "chrome" && false){
 		$("#twiticom").get(0).onmouseup = function(){
-			d=JSON.parse(decodeURIComponent($(this).html()));
+			var d=JSON.parse(decodeURIComponent($(this).html()));
 			_twcom_callbacks[d.id](d.data);
 			delete _twcom_callbacks[d.id];
 		};
 	}
 	if(localStorage['twitterKey']){
-		keys = JSON.parse(localStorage['twitterKey']);
+		var keys = JSON.parse(localStorage['twitterKey']);
 		Tw = new Twitter(keys[0], keys[1]);
 	}
 	if(!Tw){
@@ -1596,6 +1596,7 @@ $(function(){
 	}
 	twcom({type: "tw.info"}, function(d){
 		accInfo = {"twitter": {"username": d['screen_name'], "data": d}};
+		var titleAdd;
 		if(TwPlusAPI == "")
 			titleAdd = " [Trunk]";
 		else
@@ -1621,7 +1622,7 @@ $(function(){
 			$(this).data("autocomplete", null);
 			$(this).data("autocomplete_u", null);
 		}
-		left = 140 - this.value.length;
+		var left = 140 - this.value.length;
 		$("#lencounter").html(left);
 		if($(this).data("mention")){
 			if(this.value.indexOf("@" + $(this).data("mention") + " ") != 0){
@@ -1677,7 +1678,7 @@ $(function(){
 		"Follow @TwiticaDesktop for updates (please report bugs to @manatsawin)"
 	]);
 	function updateTOTD(){
-		tip = tipList.shift();
+		var tip = tipList.shift();
 		tipList.push(tip);
 		$("#tips").html(tip);
 	}
@@ -1685,12 +1686,12 @@ $(function(){
 	setInterval(updateTOTD, 15*60*1000);
 	
 	function getMentioning(){
-		ft = $("footer textarea");
-		t = ft.get(0).selectionEnd;
-		txt = $.trim(ft.val());
-		pos = txt.substr(0, t) + "!!!!!!" + txt.substr((t-1)*-1);
+		var ft = $("footer textarea");
+		var t = ft.get(0).selectionEnd;
+		var txt = $.trim(ft.val());
+		var pos = txt.substr(0, t) + "!!!!!!" + txt.substr((t-1)*-1);
 		pos = pos.split(/([: ])/);
-		thePos = -1;
+		var thePos = -1;
 		$.each(pos, function(i,e){
 			if(e.indexOf("!!!!!!") != -1){
 				thePos = i;
@@ -1723,13 +1724,13 @@ $(function(){
 	$(window).keydown(function(e){
 		isFocusing = true;
 		if(e.target.type == "text" || e.target.type == "password") return;
-		kmul = konami ? -1 : 1;
+		var kmul = konami ? -1 : 1;
 		if($(".picker:visible").length >= 1 && (e.which == 38 || e.which == 40 || e.which == 13 || e.which == 27)){
-			thisPicker = $(".picker:visible");
+			var thisPicker = $(".picker:visible");
 			if(e.which == 13){
 				if(thisPicker.attr("id") == "listpicker"){
-					id = $("li.selected", thisPicker).data("id");
-					title = $("li.selected", thisPicker).data("name");
+					var id = $("li.selected", thisPicker).data("id");
+					var title = $("li.selected", thisPicker).data("name");
 					window.open("?timeline=list&id="+id+"&title="+encodeURIComponent(title), 'list_'+id, "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());	
 				}else if(thisPicker.attr("id") == "ytpicker"){
 					out = $("li.selected", thisPicker).data("data");
@@ -1745,7 +1746,7 @@ $(function(){
 				e.preventDefault();
 			}else{
 				e.preventDefault();
-				current = $("li.selected", thisPicker);
+				var current = $("li.selected", thisPicker);
 				if(e.which == 40 && current.next().length > 0){
 					current.next().addClass("selected");
 					current.removeClass("selected");
@@ -1775,7 +1776,7 @@ $(function(){
 				e.preventDefault();
 			}else if(e.which == 13){
 				e.preventDefault();
-				firstLink = $(".noticebody a:not(.tweet-url):eq(0)", getCurrent());
+				var firstLink = $(".noticebody a:not(.tweet-url):eq(0)", getCurrent());
 				if(firstLink.length > 0){
 					if(firstLink.data("click")){
 						firstLink.click();
@@ -1802,7 +1803,7 @@ $(function(){
 				})
 			}
 		}
-		cmdKey = e.ctrlKey;
+		var cmdKey = e.ctrlKey;
 		if(navigator.userAgent.match("Macintosh")){
 			cmdKey = e.metaKey;
 		}
@@ -1844,7 +1845,7 @@ $(function(){
 				}
 				e.preventDefault();
 			}else if(e.which == 83){
-				urls = twttr.txt.extractUrls($("footer textarea").val());
+				var urls = twttr.txt.extractUrls($("footer textarea").val());
 				urls = $.unique(urls);
 				if(urls.length == 0){
 					notify("No URL to shorten");
@@ -1856,14 +1857,14 @@ $(function(){
 					if(!url) return;
 					if(url.match(/^http:\/\/j\.mp\//)) return;
 					twcom({'type': "shorten", 'url': url}, function(res){
-						ov = $("footer textarea").val();
+						var ov = $("footer textarea").val();
 						ov = ov.replace(url, res['url']);
 						$("footer textarea").val(ov);
 					});
 				})
 				e.preventDefault();
 			}else if(e.which == 75){
-				bk = prompt("Keywords to block? Prefix with src: to block a client, user: to block a user. Regex OK. Split with ||", localStorage['blockKey']);
+				var bk = prompt("Keywords to block? Prefix with src: to block a client, user: to block a user. Regex OK. Split with ||", localStorage['blockKey']);
 				if(!bk) return
 				notify("Blocked "+bk.split("||").length+" conditions");
 				localStorage['blockKey'] = bk;
@@ -1892,12 +1893,12 @@ $(function(){
 		if(e.which == 9){
 			var mentioning = getMentioning();
 		}
-		cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor", "report", "doubletaprt", "nort"].sort();
+		var cmds = ["ytplaying", "bgimg", "nothai", "autoscroll", "nogeo", "notifyduration", "rightside", "usercolor", "report", "doubletaprt", "nort"].sort();
 		if(TwPlusAPI != "chrome"){
 			cmds.remove(cmds.indexOf("ytplaying"));
 		}
 		if(e.which == 13 && $("footer textarea").val().length > 0){
-			txt = $("footer textarea").val();
+			var txt = $("footer textarea").val();
 			if($.trim(txt) == "/ytplaying" && TwPlusAPI == "chrome"){
 				e.preventDefault();
 				// find yt window
@@ -1906,7 +1907,7 @@ $(function(){
 					wnds.forEach(function(wnd){
 						wnd['tabs'].forEach(function(tab){
 							if(tab['url'].match(/^http[s]*:\/\/(www\.){0,1}youtube\.com\/watch\?v=/) && tab['title'] != ""){
-								url = tab['url'].match(/^http[s]*:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
+								var url = tab['url'].match(/^http[s]*:\/\/(?:www\.){0,1}youtube\.com\/watch\?v=(.*?)(?:&|$)/)[1];
 								url = "http://youtu.be/"+url;
 								title = tab['title'].split("YouTube - ")[1];
 								if(title === undefined){
@@ -1923,7 +1924,7 @@ $(function(){
 					}else{
 						$("footer textarea").val("");
 						// put it in list window!
-						ytlist = $("<div id='ytpicker' class='picker floatingbox'><h1>YouTube</h1><ul></ul></div>").hide().appendTo("body");
+						var ytlist = $("<div id='ytpicker' class='picker floatingbox'><h1>YouTube</h1><ul></ul></div>").hide().appendTo("body");
 						out.forEach(function(v){
 							$("<li />").text(v['title']).data("data", v).appendTo($("ul", ytlist));
 						})
@@ -1933,7 +1934,7 @@ $(function(){
 				});
 				return;
 			}else if($.trim(txt).match(/^\/notifyduration/)){
-				arg = $.trim(txt).split(" ");
+				var arg = $.trim(txt).split(" ");
 				if(arg.length < 2){
 					notify("Usage: /notifyduration "+SET['notifyDuration']);
 					return false;
@@ -1944,9 +1945,9 @@ $(function(){
 				$("footer textarea").val("")
 				return false;
 			}else if($.trim(txt).match(/^\/report/)){
-				arg = $.trim(txt).split(" ").slice(1).join(" ");
+				var arg = $.trim(txt).split(" ").slice(1).join(" ");
 				$.getJSON("manifest.json", function(out){
-					data = {
+					var data = {
 						'settings': SET,
 						'user': accInfo['twitter']['username'],
 						'startTime': startTime,
@@ -1960,7 +1961,7 @@ $(function(){
 					}
 					console.log(data, "/report");
 					data = JSON.stringify(data);
-					sig = hex_sha1(data);
+					var sig = hex_sha1(data);
 					notify("Sending report...");
 					$.getJSON("http://t.whsgroup.ath.cx/twreg.php?callback=?", {"data": data, "signature": sig}, function(d){
 						notify(d['out']);
@@ -1970,10 +1971,10 @@ $(function(){
 				e.preventDefault();
 				return;
 			}else if(toggleSet = $.trim(txt).match(/^\/(bgimg|nothai|autoscroll|nogeo|rightside|usercolor|doubletaprt|nort)(?: +|$)/)){
-				toggleSet  = toggleSet[1];
+				var toggleSet  = toggleSet[1];
 				SET[toggleSet] = !SET[toggleSet]
 				localStorage['config'] = JSON.stringify(SET);
-				setName = {
+				var setName = {
 					"bgimg": "Background image",
 					"nothai": "No Thai input",
 					"autoscroll": "Auto scrolling",
@@ -2022,13 +2023,13 @@ $(function(){
 			e.preventDefault();
 		}else if(e.which == 9 && $.trim($("footer textarea").val()).indexOf("/") == 0){
 			e.preventDefault();
-			moreTab = $("footer textarea").data("autocomplete");
+			var moreTab = $("footer textarea").data("autocomplete"), kwd;
 			if(moreTab) kwd = moreTab.kwd;
 			else kwd = $.trim($("footer textarea").val()).substr(1);
 			if(moreTab && moreTab.output.length > 0){
-				output = moreTab.output;
+				var output = moreTab.output;
 			}else{
-				indMatchLength = [];
+				var indMatchLength = [];
 				cmds.forEach(function(v, ind){
 					if(v.indexOf(kwd) == 0)
 						indMatchLength.push([ind, v.match(kwd)[0].length]);
@@ -2039,7 +2040,7 @@ $(function(){
 				}
 				output = indMatchLength;
 			}
-			iUseThis = output.shift();
+			var iUseThis = output.shift();
 			// okay now we got the command
 			$("footer textarea").val("/"+cmds[iUseThis[0]]+" ").data("autocomplete", {kwd: kwd, output: output});
 			setCaretTo($("footer textarea").get(0), $("footer textarea").val().length);
@@ -2047,6 +2048,7 @@ $(function(){
 			e.preventDefault();
 			moreTab = $("footer textarea").data("autocomplete_u");
 			txt = $.trim($("footer textarea").val()).split(/([: ])/);
+			var pos;
 			if(moreTab){
 				kwd = moreTab.kwd;
 				if(e.shiftKey){
@@ -2073,10 +2075,10 @@ $(function(){
 					d = rs.item(0);
 					txt[mentioning] = "@"+d['name']+"!!!!!!!!!!";
 					// joined text
-					jned = txt.join("");
+					var jned = txt.join("");
 					// replaced value, going to use in textarea
-					rpval = jned.replace("!!!!!!!!!!", "");
-					txtPos = jned.indexOf("!!!!!!!!!!")
+					var rpval = jned.replace("!!!!!!!!!!", "");
+					var txtPos = jned.indexOf("!!!!!!!!!!")
 					if(txtPos == jned.length - "!!!!!!!!!!".length){
 						rpval += " ";
 						txtPos += 1;
@@ -2096,7 +2098,7 @@ $(function(){
 		refocus();
 	});
 	$(window).mousewheel(function(e,d){
-		amt = Math.floor(d);
+		var amt = Math.floor(d);
 		if(amt<0) amt = Math.min(-1, amt);
 		else amt = Math.max(1, amt);
 		scroll(amt*(konami?1:-1), false);
@@ -2130,14 +2132,14 @@ $(function(){
 	
 	// Delegations
 	$("#body").delegate("a>.avatar,a>.avatarright", "click", function(e){
-		d = $(this).closest("article").data("data");
+		var d = $(this).closest("article").data("data");
 		if(!d) return true;
 		window.open("?timeline=user&user="+d['user']['screen_name'], d['user']['screen_name']+'timeline', "status=0,toolbar=0,location=0,menubar=0,directories=0,scrollbars=0,width="+$(window).width()+",height="+$(window).height());
 		e.preventDefault();
 		return false;
 	}).delegate("article .irp", "click", function(e){
 		if(e.ctrlKey) return true;
-		theDiv = dataDiv[$(this).data("id")];
+		var theDiv = dataDiv[$(this).data("id")];
 		if(!theDiv) return true;
 		else{
 			focus(theDiv);
@@ -2147,12 +2149,12 @@ $(function(){
 	}).delegate("article a", "click", function(e){
 		if(linkCheck(e) == false) return true;
 		if(this.href.match(/\.(png|jp[e]{0,1}g|gif|swf|flv)$/i)){
-			player = this.href;
+			var player = this.href;
 			if(player.match(/\.(png|jp[e]{0,1}g|gif)$/i)) player = "img";
 			else if(player.match(/\.swf$/i)) player = "swf";
 			else if(player.match(/\.flv$/i)) player = "flv";
 			else player = "iframe";
-			data = {
+			var data = {
 				content: this.href,
 				player: player,
 				title: "Attachment"
@@ -2174,13 +2176,13 @@ $(function(){
 		refocus();
 	}).delegate("article", "focus", function(e){
 		$(".noticeMeta").slideUp(100, function(){$(this).remove();});
-		metad = [];
-		d = $(this).data("data");
-		kind = $(this).data("type");
+		var metad = [];
+		var d = $(this).data("data");
+		var kind = $(this).data("type");
 		if(dentsRendered.indexOf(d['in_reply_to_status_id_str']) == -1 && $(this).data("replystatus")){
-			irp = processMsg($(this).data("replystatus"), kind);
-			offset = $(this).offset();
-			irpBox = $("<div class='noticeMeta'></div>").append(irp).appendTo("body");
+			var irp = processMsg($(this).data("replystatus"), kind);
+			var offset = $(this).offset();
+			var irpBox = $("<div class='noticeMeta'></div>").append(irp).appendTo("body");
 			// since we cannot get height of element not rendered, we need to flash it
 			irpBox.css({
 				"position": "absolute",
@@ -2189,8 +2191,8 @@ $(function(){
 			}).hide().slideDown(250);
 		}
 		if(metad.length > 0){
-			offset = $(this).offset();
-			noticeMetad = $("<div class='noticeMeta'></div>").css({
+			var offset = $(this).offset();
+			var noticeMetad = $("<div class='noticeMeta'></div>").css({
 				"position": "absolute",
 				"top": offset.top + $(this).height() + 5,
 				"left": offset.left
@@ -2224,7 +2226,7 @@ $(function(){
 		e.preventDefault();
 		$("#dropMe").fadeOut(1000);
 		//if(e.dataTransfer.files.length == 0) return false;
-		file = e.dataTransfer.files[0];
+		var file = e.dataTransfer.files[0];
 		if(localStorage['twitpic']){
 			twcom({type: "tw.echo"}, function(head){
 				var data = new FormData();
@@ -2232,12 +2234,12 @@ $(function(){
 				data.append("media", file);
 				var req = new XMLHttpRequest();
 				req.open("POST", "http://api.twitpic.com/2/upload.json", true);
-				req.setRequestHeader("X-Auth-Service-Provider", "https://api.twitter.com/1/account/verify_credentials.json");
+				req.setRequestHeader("X-Auth-Service-Provider", "https://api.twitter.com/1.1/account/verify_credentials.json");
 				req.setRequestHeader("X-Verify-Credentials-Authorization", head);
 				notify("Uploading <strong>"+file.name+"</strong>");
 				req.onreadystatechange = function(){
 					if (req.readyState == 4) {
-						d = JSON.parse(req.responseText);
+						var d = JSON.parse(req.responseText);
 						if(d['errors']){
 							return notify("<strong>ERROR:</strong> "+d['errors']['message']);
 						}else{
@@ -2271,9 +2273,9 @@ $(function(){
 		DB.transaction(function(x){
 			x.executeSql("SELECT * FROM scrollback ORDER BY id ASC", null, function(x, rs){
 				rs = rs.rows;
-				for(i=0; i<rs.length; i++){
-					d = rs.item(i);
-					obj = JSON.parse(d['data']);
+				for(var i=0; i<rs.length; i++){
+					var d = rs.item(i);
+					var obj = JSON.parse(d['data']);
 					if(d['kind'] == "twitter") addTweet(obj, false, false, false);
 					last_twitter_id = obj['id_str'];
 				}

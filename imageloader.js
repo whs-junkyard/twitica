@@ -18,7 +18,7 @@ TwitPicLoader = function(url){
  */
 TwitPicLoader.prototype.getURL = function(cb){
 	return $.get(this.url+"/full", function(r){
-		d = r.match(/<img src="(.*?)" alt="(.*?)">/);
+		var d = r.match(/<img src="(.*?)" alt="(.*?)">/);
 		cb(d[1], d[2]);
 	})
 };
@@ -55,7 +55,7 @@ OEmbedLoader = function(url, endpoint){
  * @param {Function} Callback function. Will be called with first argument is the image's URL and second argument is the description
  */
 OEmbedLoader.prototype.getURL = function(cb){
-	join = this.endpoint.indexOf("?") == -1 ? "?" : "&"
+	var join = this.endpoint.indexOf("?") == -1 ? "?" : "&"
 	$.getJSON(this.endpoint+join+"callback=?", {"url": this.url}, function(d){
 		cb(d['url'], d['title']);
 	})
@@ -79,10 +79,10 @@ PicPlzLoader = function(url){
  * @param {Function} Callback function. Will be called with first argument is the image's URL and second argument is the description
  */
 PicPlzLoader.prototype.getURL = function(cb){
-	data = {};
+	var data = {};
 	data[this.urlType+"_id"] = this.code;
 	$.getJSON("https://api.picplz.com/api/v2/pic.json?callback=?", data, function(d){
-		pic = d['value']['pics'][0];
+		var pic = d['value']['pics'][0];
 		cb(pic['pic_files']['640r']['img_url'], pic['caption']);
 	});
 };
@@ -158,7 +158,7 @@ window['ImageLoader'] = {
 		 * @param {Frame}
 		 */
 		"frame": function(url, wnd){
-			provider = ImageLoader['getProvider'](url);
+			var provider = ImageLoader['getProvider'](url);
 			provider.getURL(function(url, desc){
 				wnd.document.write("<style>body{text-align:center;margin:0;padding:0;}img{border:none;}</style>");
 				wnd.document.write("<p style='text-align: left;'></p>");
@@ -172,7 +172,7 @@ window['ImageLoader'] = {
 		 * @param {Frame}
 		 */
 		"shadowbox": function(url){
-			provider = ImageLoader['getProvider'](url);
+			var provider = ImageLoader['getProvider'](url);
 			if(!provider) return false;
 			provider.getURL(function(url, desc){
 				Shadowbox.open({
