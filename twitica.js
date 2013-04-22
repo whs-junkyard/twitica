@@ -2293,6 +2293,11 @@ $(function(){
 	}else{
 		twitterLoad();
 	}
+
+	// font size, as requested by @nonene_desu
+	if(localStorage['fontSize']){
+		$("<style>").text("body{font-size: "+parseInt(localStorage.fontSize)+"pt;}").appendTo("head");
+	}
 	
 	Shadowbox.init({
 	    skipSetup: true
